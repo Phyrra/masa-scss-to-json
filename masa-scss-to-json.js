@@ -1,0 +1,155 @@
+const fs = require('fs');
+const path = require('path');
+
+const DEFAULT_DECLARATION = '!default';
+
+function readFile(file, variables) {
+    if (!file.endsWith('.scss')) {
+        file += '.scss';
+    }
+    
+    const lines = removeCommentsFromLines(
+        getCleanedLines(
+            readLinesFromFile(file)
+        )
+	);
+    
+    lines
+        .forEach(line => {
+            const lowerLine = line.toLowerCase();
+        
+            if (isImport(lowerLine)) {
+				const importFile = getImportFile(line);
+
+				readFile(
+					getImportPath(file, importFile),
+                    variables
+                );
+                
+                return;
+            }
+        
+            if (isVariableDefinition(lowerLine)) {
+                const variable = getVariable(line);
+                
+                if (variables[variable.name]) {
+                    if (variable.default) {
+                        // continue, no error
+                    } else {
+                        throw new Error(`Variable ${variable.name} already exists`);
+                    }
+                } else {
+                    variables[variable.name] = variable.value;
+                }
+                
+                return;
+            }
+        });
+}
+
+function readLinesFromFile(file) {
+    return fs.readFileSync(file, 'utf8')
+        .split(/\n/);
+}
+
+function getCleanedLines(lines) {
+    return lines
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+}
+
+function removeCommentsFromLines(lines) {
+    let multiLineCommentStarted = false;
+    
+	return getCleanedLines(
+		lines
+			.map(line => {
+				const idx = line.indexOf('//');
+			
+				if (idx !== -1) {
+					return line.substring(0, idx - 1);
+				}
+				
+				return line;
+			})
+			.map(line => {
+				if (multiLineCommentStarted) {
+					const idxStop = line.indexOf('*/');
+					if (idxStop === -1) {
+						return '';
+					}
+
+					multiLineCommentStarted = false;
+
+					return line.substring(idxStop + 2);
+				} else {
+					const idxStart = line.indexOf('/*');
+					if (idxStart === -1) {
+						return line;
+					}
+		
+					const idxStop = line.indexOf('*/', idxStart + 1);
+					if (idxStop === -1) {
+						multiLineCommentStarted = true;
+
+						return '';
+					}
+		
+					return line.substring(0, idxStart - 1) + line.substring(idxStop + 2);
+				}
+			})
+	);
+}
+
+
+function isImport(line) {
+    return line.startsWith('@import');
+}
+
+function getImportFile(line) {
+    const idxStart = line.indexOf('"');
+    const idxStop = line.indexOf('"', idxStart + 1);
+    
+    return line.substring(idxStart + 1, idxStop);
+}
+
+function getImportPath(src, dst) {
+	if (dst.startsWith('~')) {
+		return './' + dst.substring(1);
+	}
+
+	return path.join(path.dirname(src), dst);
+}
+
+function isVariableDefinition(line) {
+    return line.startsWith('$');
+}
+
+function getVariable(line) {
+    const idxColon = line.indexOf(':');
+    const idxDefault = line.indexOf(DEFAULT_DECLARATION);
+    
+    if (idxDefault != -1) {
+        return {
+            name: line.substring(1, idxColon),
+            value: line.substring(idxColon + 1, idxDefault).trim(),
+            default: true
+        };
+    } else {
+        return {
+            name: line.substring(1, idxColon),
+            value: line.substring(idxColon + 1, line.length - 1).trim(),
+            default: false
+        };
+    }
+}
+
+function scssToJson(startFile) {
+	const variables = {};
+
+	readFile(startFile, variables);
+
+	return variables;
+}
+
+module.exports = scssToJson

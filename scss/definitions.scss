@@ -1,0 +1,16 @@
+@import "branding";
+@import "../base";
+@import "~scss/direct";
+
+// test
+$myVar1: 123 !default; // test
+$myVar2: 456;
+
+/*
+some comment
+*/
+$myVar4: /* some comment */ 'meep';
+
+/*
+some comment
+*/ $myVar5: 'asdf';
