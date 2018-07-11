@@ -1,0 +1,24 @@
+{
+  "name": "masa-scss-to-json",
+  "version": "0.0.1",
+  "description": "Extract variables from SCSS files and get them as JSON",
+  "keywords": [
+    "scss",
+    "variable",
+    "variables",
+    "extract",
+    "json"
+  ],
+  "repository": "https://github.com/Phyrra/masa-scss-to-json.git",
+  "author": "Sandro.Maggi",
+  "license": "MIT",
+  "private": false,
+  "scripts": {
+    "test": "jasmine-node specs"
+  },
+  "main": "index.js",
+  "readme": "README.md",
+  "devDependencies": {
+    "jasmine-node": "^1.15.0"
+  }
+}
