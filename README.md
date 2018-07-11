@@ -18,11 +18,11 @@ Comments are supported (but ignored).
 Imports are supported. The `.scss` suffix is not required. Currently only double quoted imports are supported.
 
 They can be relative:
-* `@import "local-file";
-* `@import "../lower-level-file";
+* `@import "local-file";`
+* `@import "../lower-level-file";`
 
 They can be absolute:
-* `@import "~scss-folder/file";
+* `@import "~scss-folder/file";`
 
 Example
 =======
