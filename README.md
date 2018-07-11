@@ -2,6 +2,7 @@ Usage
 =====
 
 Call the function with the root file as the argument, the `.scss` suffix is not required.
+An optional second argument can be provided, to write the output to a file.
 
 The function returns a JSON with all the variables.
 
@@ -41,11 +42,21 @@ $var: 1 !default;
 console.log(scssToJson('definitions')); // { var: 2 }
 ```
 
-Example
-=======
+Examples
+========
 
 ```
-const scssToJson = import('index.js');
+const scssToJson = import('masa-scss-to-json');
 
-console.log(scssToJson('my-scss-file'));
+console.log(scssToJson('my-scss-file')); // { a: 1, b: '40px' }
+```
+
+```
+const scssToJson = require('masa-scss-to-json');
+
+console.log(
+	scssToJson('my-scss-file', 'out.json')
+);
+// { a: 1, b: '40px' }
+// out.json created
 ```
