@@ -24,6 +24,23 @@ They can be relative:
 They can be absolute:
 * `@import "~scss-folder/file";`
 
+### Default
+
+Default values are supported. The non-default needs to occur before the declaration of default.
+
+```
+// branding.scss
+$var: 2;
+
+// definitions.scss
+@import "branding";
+
+$var: 1 !default;
+
+// Call
+console.log(scssToJson('definitions')); // { var: 2 }
+```
+
 Example
 =======
 
