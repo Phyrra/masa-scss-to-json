@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const mkdirp = require('mkdirp');
 
 const DEFAULT_DECLARATION = '!default';
 
@@ -163,10 +164,39 @@ function getVariableValue(value) {
 	return value;
 }
 
-function scssToJson(startFile) {
+function writeJsonToFile(out, json) {
+	const dir = path.dirname(out);
+	if (!fs.existsSync(dir)){
+		mkdirp.sync(dir);
+	}
+
+	fs.writeFileSync(out, stringifyJson(json));
+}
+
+function stringifyJson(json) {
+	return '{\r\n' +
+		Object.keys(json)
+			.map(key => {
+				const value = json[key];
+
+				if (typeof value === 'number') {
+					return `\t"${key}": ${value}`;
+				}
+				
+				return `\t"${key}": "${value}"`;
+			})
+			.join(',\r\n') +
+		'\r\n}';
+}
+
+function scssToJson(startFile, outFile) {
 	const variables = {};
 
 	readFile(startFile, variables);
+
+	if (outFile != null) {
+		writeJsonToFile(outFile, variables);
+	}
 
 	return variables;
 }
