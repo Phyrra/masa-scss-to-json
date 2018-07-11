@@ -2,7 +2,7 @@ const scssToJson = require('../../index');
 
 describe('default', () => {
 	it('should overwrite default', () => {
-		expect(scssToJson('./specs/default/good-default').var).toEqual('2');
+		expect(scssToJson('./specs/default/good-default').var).toEqual(2);
 	});
 
 	it('should fail for non-default overwrite', () => {

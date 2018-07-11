@@ -101,7 +101,6 @@ function removeCommentsFromLines(lines) {
 	);
 }
 
-
 function isImport(line) {
     return line.startsWith('@import');
 }
@@ -132,16 +131,36 @@ function getVariable(line) {
     if (idxDefault != -1) {
         return {
             name: line.substring(1, idxColon),
-            value: line.substring(idxColon + 1, idxDefault).trim(),
+            value: getVariableValue(line.substring(idxColon + 1, idxDefault).trim()),
             default: true
         };
     } else {
         return {
             name: line.substring(1, idxColon),
-            value: line.substring(idxColon + 1, line.length - 1).trim(),
+            value: getVariableValue(line.substring(idxColon + 1, line.length - 1).trim()),
             default: false
         };
     }
+}
+
+function getVariableValue(value) {
+	if (value.startsWith('\'') && value.endsWith('\'')) {
+		return value.substring(1, value.length - 1);
+	}
+
+	if (value.startsWith('"') && value.endsWith('"')) {
+		return value.substring(1, value.length - 1);
+	}
+
+	if (value.match(/^[+-]?\d+$/)) {
+		return parseInt(value);
+	}
+
+	if (value.match(/^[+-]?(\d*\.\d+|\d+\.\d*)$/)) {
+		return parseFloat(value);
+	}
+
+	return value;
 }
 
 function scssToJson(startFile) {
