@@ -29,7 +29,7 @@ Comments are supported (but ignored).
 
 ### Imports
 
-Imports are supported. The `.scss` suffix is not required. Currently only double quoted imports are supported.
+Imports are supported. The `.scss` suffix is not required.
 
 They can be relative:
 * `@import "local-file";`

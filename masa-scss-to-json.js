@@ -150,16 +150,19 @@ function getVariable(line) {
 	const idxImportant = line.indexOf('!important');
 
 	const isDefault = idxDefault !== -1;
+	if (isDefault) {
+		const endOfDefault = idxDefault + 9;
+		const endOfLine = line.length - 1;
+
+		if (endOfDefault < endOfLine && line.substring(endOfDefault, endOfLine).trim().length > 0) {
+			throw new Error(`Unknown parameter after !default`);
+		}
+	}
+
 	const isImportant = idxImportant !== -1;
 
 	let endIdx;
-	if (isDefault && isImportant) {
-		if (idxDefault < idxImportant) {
-			throw new Error(`!important must be before !default`);
-		}
-
-		endIdx = Math.min(idxDefault, idxImportant); // Since I'm not quite sure about the above rule
-	} else if (isDefault) {
+	if (isDefault) {
 		endIdx = idxDefault;
 	} else if (isImportant) {
 		endIdx = idxImportant;
@@ -168,7 +171,7 @@ function getVariable(line) {
 	}
 
 	return {
-		name: line.substring(1, idxColon),
+		name: line.substring(1, idxColon).trim(),
 		value: getVariableValue(line.substring(idxColon + 1, endIdx).trim()),
 		default: isDefault
 	};
