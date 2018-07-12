@@ -24,6 +24,6 @@ describe('imports', () => {
 	it('should throw an error for an unknown import', () => {
 		expect(() => {
 			scssToJson('./specs/imports', 'bad-import');
-		}).toThrow();
+		}).toThrowError(/^ENOENT/);
 	});
 });

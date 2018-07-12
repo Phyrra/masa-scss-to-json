@@ -8,6 +8,6 @@ describe('default', () => {
 	it('should fail for non-default overwrite', () => {
 		expect(() => {
 			scssToJson('./specs/default', 'bad-default');
-		}).toThrow();
+		}).toThrowError('Variable var already exists, maybe missing "!default"');
 	});
 });

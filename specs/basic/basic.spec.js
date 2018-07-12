@@ -15,6 +15,6 @@ describe('basic', () => {
 	it('should throw an error if file does not exist', () => {
 		expect(() => {
 			scssToJson('./specs/basic', 'unknown');
-		}).toThrow();
+		}).toThrowError(/^ENOENT/);
 	});
 });

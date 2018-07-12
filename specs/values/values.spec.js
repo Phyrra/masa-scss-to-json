@@ -4,7 +4,7 @@ describe('values', () => {
 	describe('strings', () => {
 		let json;
 
-		beforeEach(() => {
+		beforeAll(() => {
 			json = scssToJson('./specs/values', 'strings');
 		});
 
@@ -20,7 +20,7 @@ describe('values', () => {
 	describe('integers', () => {
 		let json;
 
-		beforeEach(() => {
+		beforeAll(() => {
 			json = scssToJson('./specs/values', 'integers');
 		});
 
@@ -40,7 +40,7 @@ describe('values', () => {
 	describe('floats', () => {
 		let json;
 
-		beforeEach(() => {
+		beforeAll(() => {
 			json = scssToJson('./specs/values', 'floats');
 		});
 
@@ -84,7 +84,7 @@ describe('values', () => {
 	describe('others', () => {
 		let json;
 
-		beforeEach(() => {
+		beforeAll(() => {
 			json = scssToJson('./specs/values', 'others');
 		});
 
