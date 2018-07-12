@@ -208,7 +208,6 @@ function mkdirpSync(baseDir, dir) {
 	let fullPath;
 	dirs.forEach(dir => {
 		fullPath = fullPath ? path.join(fullPath, dir) : dir;
-		console.log(fullPath);
 
 		if (!fs.existsSync(fullPath)) {
 			fs.mkdirSync(fullPath);
