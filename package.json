@@ -14,12 +14,12 @@
   "license": "MIT",
   "private": false,
   "scripts": {
-    "test": "jasmine-node specs"
+    "test": "jasmine JASMINE_CONFIG_PATH=specs/jasmine.json"
   },
   "main": "index.js",
   "bin": "bin/masa-scss-to-json",
   "readme": "README.md",
   "devDependencies": {
-    "jasmine-node": "^1.15.0"
+    "jasmine": "^3.1.0"
   }
 }
