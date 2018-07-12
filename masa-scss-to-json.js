@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const mkdirp = require('mkdirp');
 
 function readFile(baseDir, file, variables) {
 	if (!file.endsWith('.scss')) {
@@ -197,10 +196,30 @@ function getVariableValue(value) {
 	return value;
 }
 
-function writeJsonToFile(out, json) {
+function mkdirpSync(baseDir, dir) {
+	if (!dir.startsWith('/')) { // relative path
+		dir = path.join(baseDir, dir);
+	}
+
+	const dirs = path.normalize(dir)
+		.replace(/\\/g, '/') // Windows
+		.split('/');
+
+	let fullPath;
+	dirs.forEach(dir => {
+		fullPath = fullPath ? path.join(fullPath, dir) : dir;
+		console.log(fullPath);
+
+		if (!fs.existsSync(fullPath)) {
+			fs.mkdirSync(fullPath);
+		}
+	});
+}
+
+function writeJsonToFile(baseDir, out, json) {
 	const dir = path.dirname(out);
 	if (!fs.existsSync(dir)) {
-		mkdirp.sync(dir);
+		mkdirpSync(baseDir, dir);
 	}
 
 	fs.writeFileSync(out, stringifyJson(json));
@@ -228,7 +247,7 @@ function scssToJson(baseDir, startFile, outFile) {
 	readFile(baseDir, path.join(baseDir, startFile), variables);
 
 	if (outFile != null) {
-		writeJsonToFile(outFile, variables);
+		writeJsonToFile(baseDir, outFile, variables);
 	}
 
 	return variables;
