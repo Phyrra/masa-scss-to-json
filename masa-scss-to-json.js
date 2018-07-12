@@ -2,8 +2,6 @@ const fs = require('fs');
 const path = require('path');
 const mkdirp = require('mkdirp');
 
-const DEFAULT_DECLARATION = '!default';
-
 function readFile(baseDir, file, variables) {
 	if (!file.endsWith('.scss')) {
 		file += '.scss';
@@ -139,22 +137,41 @@ function isVariableDefinition(line) {
 }
 
 function getVariable(line) {
-	const idxColon = line.indexOf(':');
-	const idxDefault = line.indexOf(DEFAULT_DECLARATION);
-
-	if (idxDefault != -1) {
-		return {
-			name: line.substring(1, idxColon),
-			value: getVariableValue(line.substring(idxColon + 1, idxDefault).trim()),
-			default: true
-		};
-	} else {
-		return {
-			name: line.substring(1, idxColon),
-			value: getVariableValue(line.substring(idxColon + 1, line.length - 1).trim()),
-			default: false
-		};
+	if (!line.endsWith(';')) {
+		throw new Error(`Missing semicolon ${line}`);
 	}
+
+	const idxColon = line.indexOf(':');
+	if (idxColon === -1) {
+		throw new Error(`Missing colon ${line}`);
+	}
+
+	const idxDefault = line.indexOf('!default');
+	const idxImportant = line.indexOf('!important');
+
+	const isDefault = idxDefault !== -1;
+	const isImportant = idxImportant !== -1;
+
+	let endIdx;
+	if (isDefault && isImportant) {
+		if (idxDefault < idxImportant) {
+			throw new Error(`!important must be before !default`);
+		}
+
+		endIdx = Math.min(idxDefault, idxImportant); // Since I'm not quite sure about the above rule
+	} else if (isDefault) {
+		endIdx = idxDefault;
+	} else if (isImportant) {
+		endIdx = idxImportant;
+	} else {
+		endIdx = line.length - 1;
+	}
+
+	return {
+		name: line.substring(1, idxColon),
+		value: getVariableValue(line.substring(idxColon + 1, endIdx).trim()),
+		default: isDefault
+	};
 }
 
 function getVariableValue(value) {
