@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 const scssToJson = require('./masa-scss-to-json');
 
 // 0: node / yarn
@@ -10,6 +11,8 @@ if (!configFile || !fs.existsSync(configFile)) {
 	throw new Error('Missing config');
 }
 
-const config = require('./' + configFile);
+const config = require(path.join(process.cwd(), configFile));
 
-return scssToJson(config.baseDir, config.file, config.out);
+module.exports = {
+	run: () => scssToJson(config.baseDir, config.file, config.out)
+};

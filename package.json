@@ -1,6 +1,6 @@
 {
   "name": "masa-scss-to-json",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Extract variables from SCSS files and get them as JSON",
   "keywords": [
     "scss",
@@ -17,6 +17,7 @@
     "test": "jasmine-node specs"
   },
   "main": "index.js",
+  "bin": "bin/masa-scss-to-json",
   "readme": "README.md",
   "devDependencies": {
     "jasmine-node": "^1.15.0"
