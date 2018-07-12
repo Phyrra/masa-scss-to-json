@@ -3,3 +3,4 @@ specs/
 yarn-error.log
 yarn.lock
 .gitignore
+.DS_Store

@@ -1,10 +1,23 @@
 Usage
 =====
 
-Call the function with the root file as the argument, the `.scss` suffix is not required.
-An optional second argument can be provided, to write the output to a file.
+Install the tool from [npmjs.com](https://www.npmjs.com/package/masa-scss-to-json) with `yarn install masa-scss-to-json`.
 
-The function returns a JSON with all the variables.
+Create a task in the `scripts` part of the `package.json`:
+```
+"scripts": {
+	"scss-to-json": "masa-scss-to-json scssToJson.conf.js"
+}
+```
+
+Add the config file:
+```
+module.exports = {
+	baseDir: './scss',
+	file: 'definitions',
+	out: 'out.json'
+}
+```
 
 ### Syntax
 
@@ -38,25 +51,9 @@ $var: 2;
 
 $var: 1 !default;
 
-// Call
-console.log(scssToJson('definitions')); // { var: 2 }
-```
-
-Examples
-========
-
-```
-const scssToJson = import('masa-scss-to-json');
-
-console.log(scssToJson('my-scss-file')); // { a: 1, b: '40px' }
-```
-
-```
-const scssToJson = require('masa-scss-to-json');
-
-console.log(
-	scssToJson('my-scss-file', 'out.json')
-);
-// { a: 1, b: '40px' }
-// out.json created
+// scssToJson.conf.js
+module.exports = {
+	baseDir: './',
+	file: 'definitions'
+}
 ```
