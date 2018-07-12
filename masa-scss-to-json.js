@@ -38,7 +38,7 @@ function readFile(baseDir, file, variables) {
 					if (variable.default) {
 						// continue, no error
 					} else {
-						throw new Error(`Variable ${variable.name} already exists`);
+						throw new Error(`Variable ${variable.name} already exists, maybe missing "!default"`);
 					}
 				} else {
 					variables[variable.name] = variable.value;
@@ -108,10 +108,22 @@ function isImport(line) {
 }
 
 function getImportFile(line) {
-	const idxStart = line.indexOf('"');
-	const idxStop = line.indexOf('"', idxStart + 1);
+	const readImport = char => {
+		const idxStart = line.indexOf(char);
+		const idxStop = line.indexOf(char, idxStart + 1);
 
-	return line.substring(idxStart + 1, idxStop);
+		return line.substring(idxStart + 1, idxStop);
+	};
+
+	if (line.match(/^@import\s+".*?";$/)) {
+		return readImport('"');
+	}
+
+	if (line.match(/^@import\s+'.*?';$/)) {
+		return readImport('\'');
+	}
+
+	throw new Error(`Bad import "${line}"`);
 }
 
 function getImportPath(baseDir, parentFile, importFile) {
