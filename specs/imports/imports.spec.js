@@ -9,6 +9,10 @@ describe('imports', () => {
 		expect(scssToJson('./specs/imports', 'import-single-quote').var).toEqual(1);
 	});
 
+	it('should import with whitespace', () => {
+		expect(scssToJson('./specs/imports', 'import-whitespace').var).toEqual(1);
+	});
+
 	it('should import a file one level lower', () => {
 		expect(scssToJson('./specs/imports/level', 'relative-path-import').var).toEqual(1);
 	});

@@ -110,7 +110,7 @@ function getImportFile(line) {
 		const idxStart = line.indexOf(char);
 		const idxStop = line.indexOf(char, idxStart + 1);
 
-		return line.substring(idxStart + 1, idxStop);
+		return line.substring(idxStart + 1, idxStop).trim();
 	};
 
 	if (line.match(/^@import\s+".*?";$/)) {
