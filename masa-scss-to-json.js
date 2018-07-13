@@ -235,7 +235,7 @@ function stringifyJson(json) {
 					return `\t"${key}": ${value}`;
 				}
 
-				return `\t"${key}": "${value}"`;
+				return `\t"${key}": "${value.replace(/"/g, '\\"')}"`;
 			})
 			.join(',\r\n') +
 		'\r\n}';
