@@ -180,11 +180,11 @@ function isVariableDefinition(line) {
 }
 
 function isArrayStart(line) {
-	return line.match(/^\$\w+:\s*\(/);
+	return line.match(/^\$(\w|-)+:\s*\(/);
 }
 
 function cleanArrayStart(line) {
-	return line.replace(/^\$\w+:\s*\(/, '');
+	return line.replace(/^\$(\w|-)+:\s*\(/, '');
 }
 
 function isArrayEnding(line) {
@@ -334,14 +334,22 @@ function stringifyJson(json) {
 			.map(key => {
 				const value = json[key];
 
-				if (typeof value === 'number') {
-					return `\t"${key}": ${value}`;
-				}
-
-				return `\t"${key}": "${value.replace(/"/g, '\\"')}"`;
+				return `\t"${key}": ${getJsonValueString(value)}`;
 			})
 			.join(',\r\n') +
 		'\r\n}';
+}
+
+function getJsonValueString(value) {
+	if (typeof value === 'number') {
+		return `${value}`;
+	}
+
+	if (Array.isArray(value)) {
+		return '[\r\n' + value.map(val => '\t\t' + getJsonValueString(val)).join(',\r\n') + '\r\n\t]';
+	}
+
+	return `"${value.replace(/"/g, '\\"')}"`;
 }
 
 function scssToJson(baseDir, startFile, outFile) {
