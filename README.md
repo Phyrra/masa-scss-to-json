@@ -1,7 +1,7 @@
 Usage
 =====
 
-Install the tool from [npmjs.com](https://www.npmjs.com/package/masa-scss-to-json) with `yarn install masa-scss-to-json`.
+Install the tool from [npmjs.com](https://www.npmjs.com/package/masa-scss-to-json) with `yarn add masa-scss-to-json`.
 
 Create a task in the `scripts` part of the `package.json`:
 ```
