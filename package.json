@@ -1,6 +1,6 @@
 {
   "name": "masa-scss-to-json",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Extract variables from SCSS files and get them as JSON",
   "keywords": [
     "scss",

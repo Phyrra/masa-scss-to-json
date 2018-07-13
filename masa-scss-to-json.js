@@ -12,9 +12,30 @@ function readFile(baseDir, file, variables) {
 		)
 	);
 
+	let arrayBuffer = [];
+	let arrayBufferFilling = false;
+
 	lines
 		.forEach(line => {
 			const lowerLine = line.toLowerCase();
+
+			if (arrayBufferFilling) {
+				arrayBuffer.push(line);
+
+				if (isArrayEnding(lowerLine)) {
+					addVariable(
+						getArrayVariable(arrayBuffer, variables),
+						variables
+					);
+
+					arrayBuffer = [];
+					arrayBufferFilling = false;
+
+					return;
+				}
+
+				return;
+			}
 
 			if (isImport(lowerLine)) {
 				const importFile = getImportFile(line);
@@ -29,21 +50,44 @@ function readFile(baseDir, file, variables) {
 			}
 
 			if (isVariableDefinition(lowerLine)) {
-				const variable = getVariable(line);
+				if (isArrayStart(line)) {
+					if (isArrayEnding(line)) {
+						addVariable(
+							getArrayVariable([line], variables),
+							variables
+						);
 
-				if (variables[variable.name]) {
-					if (variable.default) {
-						// continue, no error
-					} else {
-						throw new Error(`Variable ${variable.name} already exists, maybe missing "!default"`);
+						return;
 					}
-				} else {
-					variables[variable.name] = variable.value;
+
+					arrayBuffer.push(line);
+					arrayBufferFilling = true;
+
+					return;
 				}
+
+				addVariable(
+					getVariable(line),
+					variables
+				);
 
 				return;
 			}
+
+			// ignore everything else
 		});
+}
+
+function addVariable(variable, variables) {
+	if (variables.hasOwnProperty(variable.name)) {
+		if (variable.default) {
+			// continue, no error
+		} else {
+			throw new Error(`Variable ${variable.name} already exists, maybe missing "!default"`);
+		}
+	} else {
+		variables[variable.name] = variable.value;
+	}
 }
 
 function readLinesFromFile(file) {
@@ -133,6 +177,65 @@ function getImportPath(baseDir, parentFile, importFile) {
 
 function isVariableDefinition(line) {
 	return line.startsWith('$');
+}
+
+function isArrayStart(line) {
+	return line.match(/^\$\w+:\s*\(/);
+}
+
+function cleanArrayStart(line) {
+	return line.replace(/^\$\w+:\s*\(/, '');
+}
+
+function isArrayEnding(line) {
+	return line.match(/\)\s*(!default)?\s*;$/);
+}
+
+function cleanArrayEnding(line) {
+	return line.replace(/\)\s*(!default)?\s*;$/, '');
+}
+
+function getArrayVariable(lines, variables) {
+	const firstLine = lines[0];
+	const lastLine = lines[lines.length - 1];
+
+	const idxColon = firstLine.indexOf(':');
+	const name = firstLine.substring(1, idxColon).trim();
+
+	const isDefault = lastLine.indexOf('!default') !== -1;
+
+	lines[0] = cleanArrayStart(lines[0]);
+	lines[lines.length - 1] = cleanArrayEnding(lines[lines.length - 1]);
+
+	return {
+		name: name,
+		value: getArrayValues(lines, variables),
+		default: isDefault
+	};
+}
+
+function getArrayValues(lines, variables) {
+	return splitLinesToArrayvalues(lines)
+		.map(line => {
+			if (line.startsWith('$')) { // variable
+				const variable = line.substring(1);
+
+				if (!variables.hasOwnProperty(variable)) {
+					throw new Error(`Unknown variable ${variable}`);
+				}
+
+				return variables[variable];
+			}
+
+			return getVariableValue(line);
+		});
+}
+
+function splitLinesToArrayvalues(lines) {
+	return lines
+		.reduce((values, line) => values.concat(line.split(',')), [])
+		.map(line => line.trim())
+		.filter(line => line.length > 0);
 }
 
 function getVariable(line) {
