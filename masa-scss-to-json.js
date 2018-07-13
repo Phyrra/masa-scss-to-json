@@ -215,7 +215,7 @@ function getArrayVariable(lines, variables) {
 }
 
 function getArrayValues(lines, variables) {
-	return splitLinesToArrayvalues(lines)
+	return splitLinesToArrayValues(lines)
 		.map(line => {
 			if (line.startsWith('$')) { // variable
 				const variable = line.substring(1);
@@ -231,7 +231,7 @@ function getArrayValues(lines, variables) {
 		});
 }
 
-function splitLinesToArrayvalues(lines) {
+function splitLinesToArrayValues(lines) {
 	return lines
 		.reduce((values, line) => values.concat(line.split(',')), [])
 		.map(line => line.trim())
