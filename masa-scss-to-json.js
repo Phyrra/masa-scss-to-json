@@ -196,11 +196,7 @@ function getVariableValue(value) {
 	return value;
 }
 
-function mkdirpSync(baseDir, dir) {
-	if (!dir.startsWith('/')) { // relative path
-		dir = path.join(baseDir, dir);
-	}
-
+function mkdirpSync(dir) {
 	const dirs = path.normalize(dir)
 		.replace(/\\/g, '/') // Windows
 		.split('/');
@@ -216,12 +212,17 @@ function mkdirpSync(baseDir, dir) {
 }
 
 function writeJsonToFile(baseDir, out, json) {
-	const dir = path.dirname(out);
-	if (!fs.existsSync(dir)) {
-		mkdirpSync(baseDir, dir);
+	let dir = path.dirname(out);
+	if (!dir.startsWith('/')) { // relative path
+		dir = path.join(baseDir, dir);
 	}
 
-	fs.writeFileSync(out, stringifyJson(json));
+	if (!fs.existsSync(dir)) {
+		mkdirpSync(dir);
+	}
+
+	const fileName = path.basename(out);
+	fs.writeFileSync(path.join(dir, fileName), stringifyJson(json));
 }
 
 function stringifyJson(json) {
