@@ -29,7 +29,7 @@ const TokenExpression = {
 		next: BASE_TOKENS
 	},
 	[Token.VARIABLE_DECLARATION]: {
-		regExp: new RegExp(/^\$([^:\s]+)\s*:\s*([^;(]*);/),
+		regExp: new RegExp(/^\$([^:\s]+)\s*:\s*([^\s(][^;]*);/),
 		next: BASE_TOKENS
 	},
 	[Token.ARRAY_DECLARATION]: {

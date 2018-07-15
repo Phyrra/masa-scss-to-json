@@ -1,6 +1,6 @@
 const rollup = require('../../../src/rollup');
 
-xdescribe('functions', () => {
+describe('functions', () => {
 	it('should interpret inbuilt functions', () => {
 		const json = rollup('./specs/parse-scss/functions', 'inbuilt-function');
 
@@ -9,6 +9,16 @@ xdescribe('functions', () => {
 			value: 'lighten(red, 10%)'
 		}));
 	});
+
+	it('should assign function result', () => {
+		const json = rollup('./specs/parse-scss/functions', 'function-assignment');
+
+		// TODO: Step 2 is to actually execute the function
+		expect(json.variables).toEqual({
+			'base-color': 'red',
+			'lighter-color': 'lighten(red, 10%)'
+		});
+	})
 
 	it('should deal array accessor function', () => {
 		const json = rollup('./specs/parse-scss/functions', 'array-function');

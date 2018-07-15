@@ -40,8 +40,6 @@ function rollupVariables(parentScope, variables) {
 
 		const totalMap = Object.assign({}, parentScope, map);
 
-		// TODO: Check if this takes care of "linked replacements"
-		// $a: 1; $b: $a; $c: $b;
 		if (Array.isArray(variable.value)) {
 			variable.value = variable.value.map(val => resolveVariableValues(val, totalMap));
 		} else if (typeof variable.value === 'string') {
@@ -54,23 +52,77 @@ function rollupVariables(parentScope, variables) {
 	return map;
 }
 
-function replaceVariableValues(value, variables) {
-	return value.replace(/\$[^\s]+/g, (grp) => {
-		const name = grp.substring(1);
-
-		if (!variables.hasOwnProperty(name)) {
-			throw new Error(`Unknown variable ${name}`);
+const KNOWN_FUNCTIONS = {
+	'nth': (args, variables) => {
+		if (!args[0].startsWith('$')) {
+			throw new Error(`Expected variable, got ${args[0]}`);
 		}
 
-		return variables[name].toString();
-	}).trim();
+		const arrName = args[0].substring(1);
+		if (!variables.hasOwnProperty(arrName)) {
+			throw new Error(`Unknown variable ${arrName}`);
+		}
+
+		const arr = variables[arrName];
+		if (!Array.isArray(arr)) {
+			throw new Error(`Expected array, got ${typeof arr}`);
+		}
+
+		let idx;
+		if (args[1].startsWith('$')) {
+			const idxName = args[1].substring(1);
+			if (!variables.hasOwnProperty(idxName)) {
+				throw new Error()
+			}
+
+			idx = variables[idxName];
+		} else {
+			idx = args[1];
+		}
+
+		if (!idx.toString().match(/^\d+$/)) {
+			throw new Error(`Expected int, got ${idx}`);
+		}
+
+		const intIdx = parseInt(idx, 10) - 1;
+		if (intIdx >= arr.length) {
+			throw new Error(`Array index out of bounds`);
+		}
+
+		return arr[intIdx];
+	}
+}
+
+function replaceVariableValues(value, variables) {
+	return value
+		.replace(/([\w-]+)\(([^\)]*)\)/g, (grp) => {
+			const match = grp.match(/([\w-]+)\(([^\)]*)\)/);
+
+			if (KNOWN_FUNCTIONS.hasOwnProperty(match[1])) {
+				const args = match[2].split(',')
+					.map(arg => arg.trim());
+
+				return KNOWN_FUNCTIONS[match[1]](args, variables);
+			}
+
+			return grp;
+		})
+		.replace(/\$[^\s,]+/g, (grp) => {
+			const name = grp.substring(1);
+
+			if (!variables.hasOwnProperty(name)) {
+				throw new Error(`Unknown variable ${name}`);
+			}
+
+			return variables[name].toString();
+		}).trim();
 }
 
 function resolveVariableValues(value, variables) {
 	const replaced = replaceVariableValues(value.toString(), variables);
 
 	if (replaced.match(/^[+-]?\d+$/)) {
-		return parseInt(replaced);
+		return parseInt(replaced, 10);
 	}
 
 	if (replaced.match(/^[+-]?(\d*\.\d+|\d+\.\d*)$/)) {
