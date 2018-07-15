@@ -1,12 +1,12 @@
-const scssToJson = require('../../masa-scss-to-json');
+const scssToJson = require('../../../masa-scss-to-json');
 
 describe('basic', () => {
 	it('should read variable', () => {
-		expect(scssToJson('./specs/basic', 'one-var').var).toEqual(1);
+		expect(scssToJson('./specs/extract-variables/basic', 'one-var').var).toEqual(1);
 	});
 
 	it('should read multiple variables', () => {
-		const json = scssToJson('./specs/basic', 'two-vars');
+		const json = scssToJson('./specs/extract-variables/basic', 'two-vars');
 
 		expect(json.a).toEqual(1);
 		expect(json.b).toEqual(2);
@@ -14,7 +14,7 @@ describe('basic', () => {
 
 	it('should throw an error if file does not exist', () => {
 		expect(() => {
-			scssToJson('./specs/basic', 'unknown');
+			scssToJson('./specs/extract-variables/basic', 'unknown');
 		}).toThrowError(/^ENOENT/);
 	});
 });

@@ -1,11 +1,11 @@
-const scssToJson = require('../../masa-scss-to-json');
+const scssToJson = require('../../../masa-scss-to-json');
 
 describe('values', () => {
 	describe('strings', () => {
 		let json;
 
 		beforeAll(() => {
-			json = scssToJson('./specs/values', 'strings');
+			json = scssToJson('./specs/extract-variables/values', 'strings');
 		});
 
 		it('should interpret single quote string', () => {
@@ -21,7 +21,7 @@ describe('values', () => {
 		let json;
 
 		beforeAll(() => {
-			json = scssToJson('./specs/values', 'integers');
+			json = scssToJson('./specs/extract-variables/values', 'integers');
 		});
 
 		it('should interpret normal integer', () => {
@@ -41,7 +41,7 @@ describe('values', () => {
 		let json;
 
 		beforeAll(() => {
-			json = scssToJson('./specs/values', 'floats');
+			json = scssToJson('./specs/extract-variables/values', 'floats');
 		});
 
 		it('should interpret floats', () => {
@@ -85,7 +85,7 @@ describe('values', () => {
 		let json;
 
 		beforeAll(() => {
-			json = scssToJson('./specs/values', 'others');
+			json = scssToJson('./specs/extract-variables/values', 'others');
 		});
 
 		it('should interpret pixel values', () => {
