@@ -1,0 +1,8 @@
+@import "import";
+
+$border-size: 1px !default;
+$border-color: black;
+
+.some-selector {
+	border: $border-size solid $border-color;
+}
