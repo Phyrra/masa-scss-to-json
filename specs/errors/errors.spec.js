@@ -11,13 +11,13 @@ describe('errors', () => {
 		it('should throw an error for missing quotes', () => {
 			expect(() => {
 				scssToJson('./specs/errors', 'bad-import-missing-quotes');
-			}).toThrowError(/^Bad import/);
+			}).toThrowError(/^Could not match line #1/);
 		});
 
 		it('should throw an error for missing semicolon', () => {
 			expect(() => {
 				scssToJson('./specs/errors', 'bad-import-missing-semicolon');
-			}).toThrowError(/^Bad import/);
+			}).toThrowError(/^Could not match line #1/);
 		});
 	});
 
@@ -31,13 +31,13 @@ describe('errors', () => {
 		it('should throw an error for missing colon', () => {
 			expect(() => {
 				scssToJson('./specs/errors', 'bad-variable-missing-colon');
-			}).toThrowError(/^Missing colon/);
+			}).toThrowError(/^Could not match line #1/);
 		});
 
 		it('should throw an error for missing semicolon', () => {
 			expect(() => {
 				scssToJson('./specs/errors', 'bad-variable-missing-semicolon');
-			}).toThrowError(/^Missing semicolon/);
+			}).toThrowError(/^Could not match line #1/);
 		});
 
 		it('should throw an error if something follows !default', () => {

@@ -27,7 +27,7 @@ const TokenExpression = {
 		next: BASE_TOKENS
 	},
 	[Token.VARIABLE_DECLARATION]: {
-		regExp: new RegExp(/^\$([^:\s]+)\s*:\s*([^;]*);/),
+		regExp: new RegExp(/^\$([^:\s]+)\s*:\s*([^;(]*);/),
 		next: BASE_TOKENS
 	},
 	[Token.ARRAY_DECLARATION]: {
@@ -38,7 +38,7 @@ const TokenExpression = {
 		]
 	},
 	[Token.ARRAY_VALUE]: {
-		regExp: new RegExp(/^([^,]*)/),
+		regExp: new RegExp(/^([^,)]*)/),
 		next: [
 			Token.ARRAY_SEPARATOR,
 			Token.ARRAY_END
@@ -74,7 +74,12 @@ function tokenize(lines) { // without comments
 	const tokens = [];
 	let nextTokens = BASE_TOKENS;
 
-	lines.forEach((line, idx) => {
+	for (let idx = 0; idx < lines.length; ++idx) {
+		const origLine = lines[idx];
+
+		let skip = 0;
+		let line = origLine;
+
 		while (line.length > 0) {
 			const lengthBefore = line.length;
 
@@ -94,11 +99,19 @@ function tokenize(lines) { // without comments
 
 			// prevent endless loop
 			if (lengthBefore === line.length) {
-				console.log('allowed tokens', nextTokens);
-				throw new Error(`Could not match line #${idx + 1}: ${line}`);
+				++skip;
+				if (idx + skip >= lines.length) {
+					throw new Error(
+						`Could not match line #${idx + 1}: ${origLine} (allowed Tokens: [${nextTokens.join(', ')}])`
+					);
+				}
+
+				line = line + lines[idx + skip];
 			}
 		}
-	});
+
+		idx += skip;
+	}
 
 	return tokens;
 }
@@ -190,7 +203,7 @@ function parseScss(lines) {
 
 			case Token.ARRAY_END:
 				if (token.match[1]) {
-					peek.variables[peek.variables.length - 1].isDefault = true
+					peek.variables[peek.variables.length - 1].default = true
 				}
 
 				break;

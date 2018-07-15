@@ -31,9 +31,11 @@ function rollupVariables(parentScope, variables) {
 
 	variables.forEach(variable => {
 		if (map.hasOwnProperty(variable.name)) {
-			if (!variable.default) {
-				throw new Error(`Variable ${variable.name} already exists, maybe missing "!default"`);
+			if (variable.default) {
+				return; // nothing to do
 			}
+
+			throw new Error(`Variable ${variable.name} already exists, maybe missing "!default"`);
 		}
 
 		const totalMap = Object.assign({}, parentScope, map);
