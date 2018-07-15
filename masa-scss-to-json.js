@@ -249,7 +249,6 @@ function getVariable(line) {
 	}
 
 	const idxDefault = line.indexOf('!default');
-	const idxImportant = line.indexOf('!important');
 
 	const isDefault = idxDefault !== -1;
 	if (isDefault) {
@@ -261,13 +260,9 @@ function getVariable(line) {
 		}
 	}
 
-	const isImportant = idxImportant !== -1;
-
 	let endIdx;
 	if (isDefault) {
 		endIdx = idxDefault;
-	} else if (isImportant) {
-		endIdx = idxImportant;
 	} else {
 		endIdx = line.length - 1;
 	}
