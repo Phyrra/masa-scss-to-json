@@ -1,0 +1,9 @@
+$border-size: 1px;
+
+.some-selector {
+	$border: $border-size solid black;
+
+	.inner {
+		border: $border;
+	}
+}

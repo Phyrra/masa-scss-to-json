@@ -247,7 +247,7 @@ function getVariable(name, value) {
 
 	const isDefault = idxDefault !== -1;
 	if (isDefault) {
-		const endOfDefault = idxDefault + 9;
+		const endOfDefault = idxDefault + 8;
 		const endOfLine = value.length;
 
 		if (endOfDefault < endOfLine && value.substring(endOfDefault, endOfLine).trim().length > 0) {
@@ -294,7 +294,7 @@ function getProperty(name, value) {
 
 	const isImportant = idxImportant !== -1;
 	if (isImportant) {
-		const endOfImportant = idxImportant + 9;
+		const endOfImportant = idxImportant + 11;
 		const endOfLine = value.length;
 
 		if (endOfImportant < endOfLine && value.substring(endOfImportant, endOfLine).trim().length > 0) {
