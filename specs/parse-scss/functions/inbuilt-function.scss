@@ -1,0 +1,5 @@
+$color: red;
+
+.some-selector {
+	color: lighten($color, 10%);
+}

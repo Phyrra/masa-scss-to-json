@@ -18,7 +18,7 @@ function mkdirpSync(dir) {
 	});
 }
 
-function writeJsonToFile(baseDir, out, data) {
+function writeDataToFile(baseDir, out, data) {
 	let dir = path.dirname(out);
 	if (!dir.startsWith('/')) { // relative path
 		dir = path.join(baseDir, dir);
@@ -35,4 +35,4 @@ function writeJsonToFile(baseDir, out, data) {
 	);
 }
 
-module.exports = writeJsonToFile;
+module.exports = writeDataToFile;

@@ -30,4 +30,16 @@ describe('variables', () => {
 
 		expect(json.rules[0].rules[0].properties[0].value).toEqual('1px solid black');
 	});
+
+	xit('should handle inline calculations', () => {
+		const json = rollup('./specs/parse-scss/variables', 'calculations');
+
+		expect(json.rules[0].properties[0].value).toEqual(2);
+	});
+
+	xit('should handle block calculations', () => {
+		const json = rollup('./specs/parse-scss/variables', 'calculations');
+
+		expect(json.rules[0].properties[1].value).toEqual('3 4');
+	});
 });

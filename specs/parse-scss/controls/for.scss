@@ -1,0 +1,11 @@
+$arr: (
+	red,
+	green,
+	blue
+);
+
+@for $i from 1 through length($arr) {
+	.color-#{$i} {
+		background-color: nth($arr, $i);
+	}
+}

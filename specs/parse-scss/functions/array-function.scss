@@ -1,0 +1,9 @@
+$arr: (
+	red,
+	green,
+	blue
+);
+
+.some-selector {
+	color: nth($arr, 1);
+}

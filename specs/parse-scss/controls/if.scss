@@ -1,0 +1,11 @@
+$var: true;
+
+@if ($var == true) {
+	.some-selector {
+		background-color: green;
+	}
+} @else {
+	.some-selector {
+		background-color: blue;
+	}
+}
