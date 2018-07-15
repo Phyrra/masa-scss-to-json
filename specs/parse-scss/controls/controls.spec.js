@@ -1,18 +1,21 @@
 const rollup = require('../../../src/rollup');
 
-xdescribe('controls', () => {
+describe('controls', () => {
 	it('should deal with @for', () => {
-		// TODO
 		const json = rollup('./specs/parse-scss/controls', 'for');
+
+		// TODO
 	});
 
 	it('should deal with @if', () => {
-		// TODO
 		const json = rollup('./specs/parse-scss/controls', 'if');
+
+		// TODO
 	});
 
 	it('should deal with @mixin', () => {
-		// TODO
 		const json = rollup('./specs/parse-scss/controls', 'mixin');
+
+		// TODO
 	});
 });

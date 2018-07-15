@@ -72,7 +72,7 @@ const KNOWN_FUNCTIONS = {
 		if (args[1].startsWith('$')) {
 			const idxName = args[1].substring(1);
 			if (!variables.hasOwnProperty(idxName)) {
-				throw new Error()
+				throw new Error(`Unknown variable ${idxName}`);
 			}
 
 			idx = variables[idxName];

@@ -10,8 +10,10 @@ const Token = {
 	ARRAY_SEPARATOR: 'ARRAY_SEPARATOR',
 	ARRAY_END: 'ARRAY_END',
 	RULE_START: 'RULE_START',
-	RULE_END: 'RULE_END',
-	PROPERTY: 'PROPERTY'
+	BLOCK_END: 'BLOCK_END',
+	PROPERTY: 'PROPERTY',
+	CONTROL_BLOCK_START: 'CONTROL_BLOCK_START',
+	INCLUDE_DECLARATION: 'INCLUDE_DECLARATION'
 };
 
 const BASE_TOKENS = [
@@ -19,8 +21,10 @@ const BASE_TOKENS = [
 	Token.VARIABLE_DECLARATION,
 	Token.ARRAY_DECLARATION,
 	Token.RULE_START,
-	Token.RULE_END,
-	Token.PROPERTY
+	Token.BLOCK_END,
+	Token.PROPERTY,
+	Token.CONTROL_BLOCK_START,
+	Token.INCLUDE_DECLARATION
 ];
 
 const TokenExpression = {
@@ -40,7 +44,7 @@ const TokenExpression = {
 		]
 	},
 	[Token.ARRAY_VALUE]: {
-		regExp: new RegExp(/^([^,)]*)/),
+		regExp: new RegExp(/^([^,)]+)/),
 		next: [
 			Token.ARRAY_SEPARATOR,
 			Token.ARRAY_END
@@ -57,15 +61,23 @@ const TokenExpression = {
 		next: BASE_TOKENS
 	},
 	[Token.RULE_START]: {
-		regExp: new RegExp(/^([^{]*)\{/),
+		regExp: new RegExp(/^([^@][^{]*)\{/),
 		next: BASE_TOKENS
 	},
-	[Token.RULE_END]: {
+	[Token.BLOCK_END]: {
 		regExp: new RegExp(/^\}/),
 		next: BASE_TOKENS
 	},
 	[Token.PROPERTY]: {
-		regExp: new RegExp(/^([^$][^:\s]*)\s*:\s*([^;]*);/),
+		regExp: new RegExp(/^([^$][^:\s]*)\s*:\s*([^;]+);/),
+		next: BASE_TOKENS
+	},
+	[Token.CONTROL_BLOCK_START]: {
+		regExp: new RegExp(/^@(\w+)\s+([^{]+)\{/),
+		next: BASE_TOKENS
+	},
+	[Token.INCLUDE_DECLARATION]: {
+		regExp: new RegExp(/@include\s+([^;]+);/),
 		next: BASE_TOKENS
 	}
 };
@@ -131,13 +143,14 @@ function validate(tokens) {
 				break;
 			
 			case Token.RULE_START:
+			case Token.CONTROL_BLOCK_START:
 				stack.push(token);
 				
 				break;
 
-			case Token.RULE_END:
+			case Token.BLOCK_END:
 				if (stack.length === 0) {
-					throw new Error('Mismatched rule closing bracket');
+					throw new Error('Mismatched closing bracket');
 				}
 
 				break;
@@ -162,7 +175,8 @@ function parseScss(lines) {
 	const _root = {
 		imports: [],
 		variables: [],
-		rules: []
+		rules: [],
+		blocks: []
 	};
 
 	const stack = [_root];
@@ -215,14 +229,29 @@ function parseScss(lines) {
 					selector: token.match[1].trim(),
 					variables: [],
 					rules: [],
-					properties: []
+					properties: [],
+					blocks: []
 				});
 
 				stack.push(peek.rules[peek.rules.length - 1]);
 
 				break;
+		
+			case Token.CONTROL_BLOCK_START:
+				peek.blocks.push({
+					type: token.match[1].trim(),
+					condition: token.match[2].trim(),
+					variables: [],
+					rules: [],
+					properties: [],
+					blocks: []
+				});
 
-			case Token.RULE_END:
+				stack.push(peek.blocks[peek.blocks.length - 1]);
+
+				break;
+
+			case Token.BLOCK_END:
 				stack.pop();
 
 				break;
@@ -231,6 +260,11 @@ function parseScss(lines) {
 				peek.properties.push(
 					getProperty(token.match[1].trim(), token.match[2].trim())
 				);
+
+				break;
+
+			case Token.INCLUDE_DECLARATION:
+				// ignore
 
 				break;
 
