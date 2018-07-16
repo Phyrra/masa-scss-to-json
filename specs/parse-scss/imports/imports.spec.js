@@ -1,7 +1,7 @@
 const rollup = require('../../../src/rollup');
 
 describe('imports', () => {
-	describe('import from root', () => {
+	describe('from root', () => {
 		let json;
 
 		beforeAll(() => {
@@ -31,7 +31,7 @@ describe('imports', () => {
 		});
 	});
 
-	describe('import from block', () => {
+	describe('from block', () => {
 		let json;
 
 		beforeAll(() => {
