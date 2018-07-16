@@ -1,3 +1,5 @@
+// TODO: @media rules
+
 const Token = {
 	IMPORT_DECLARATION: 'IMPORT_DECLARATION',
 	VARIABLE_DECLARATION: 'VARIABLE_DECLARATION',
@@ -10,7 +12,9 @@ const Token = {
 	STATEMENT_END: 'STATEMENT_END',
 	RULE_START: 'RULE_START',
 	BLOCK_END: 'BLOCK_END',
-	PROPERTY: 'PROPERTY',
+	PROPERTY_DECLARATION: 'PROPERTY_DECLARATION',
+	PROPERTY_VALUE: 'PROPERTY_VALUE',
+	PROPERTY_IMPORTANT: 'PROPERTY_IMPORTANT',
 	CONTROL_BLOCK_START: 'CONTROL_BLOCK_START',
 	INCLUDE_DECLARATION: 'INCLUDE_DECLARATION'
 };
@@ -78,7 +82,7 @@ const TokenExpression = {
 			Token.VARIABLE_DECLARATION,
 			Token.RULE_START,
 			Token.BLOCK_END,
-			Token.PROPERTY,
+			Token.PROPERTY_DECLARATION,
 			Token.CONTROL_BLOCK_START,
 			Token.INCLUDE_DECLARATION
 		],
@@ -87,9 +91,25 @@ const TokenExpression = {
 	[Token.BLOCK_END]: {
 		regExp: new RegExp(/^\}/)
 	},
-	[Token.PROPERTY]: {
-		regExp: new RegExp(/^([\w-]+)\s*:\s*([^;]+);/),
+	[Token.PROPERTY_DECLARATION]: {
+		regExp: new RegExp(/^([\w-]+)\s*:/),
+		next: [
+			Token.PROPERTY_VALUE
+		],
 		start: true
+	},
+	[Token.PROPERTY_VALUE]: {
+		regExp: new RegExp(/^([^!;]+)/),
+		next: [
+			Token.PROPERTY_IMPORTANT,
+			Token.STATEMENT_END
+		]
+	},
+	[Token.PROPERTY_IMPORTANT]: {
+		regExp: new RegExp(/^!important/),
+		next: [
+			Token.STATEMENT_END
+		]
 	},
 	[Token.CONTROL_BLOCK_START]: {
 		regExp: new RegExp(/^@(\w+)\s+([^{]+)\{/),
@@ -98,7 +118,7 @@ const TokenExpression = {
 			Token.VARIABLE_DECLARATION,
 			Token.RULE_START,
 			Token.BLOCK_END,
-			Token.PROPERTY,
+			Token.PROPERTY_DECLARATION,
 			Token.CONTROL_BLOCK_START,
 			Token.INCLUDE_DECLARATION
 		],
@@ -119,7 +139,6 @@ function tokenize(lines) { // without comments
 			Token.VARIABLE_DECLARATION,
 			Token.RULE_START,
 			Token.BLOCK_END,
-			Token.PROPERTY,
 			Token.CONTROL_BLOCK_START,
 			Token.INCLUDE_DECLARATION
 		]
@@ -293,10 +312,22 @@ function parseScss(lines) {
 
 				break;
 
-			case Token.PROPERTY:
-				peek.properties.push(
-					getProperty(token.match[1].trim(), token.match[2].trim())
-				);
+			case Token.PROPERTY_DECLARATION:
+				peek.properties.push({
+					name: token.match[1].trim(),
+					value: undefined,
+					important: false
+				});
+
+				break;
+
+			case Token.PROPERTY_VALUE:
+				peek.properties[peek.properties.length - 1].value = token.match[1].trim();
+
+				break;
+
+			case Token.PROPERTY_IMPORTANT:
+				peek.properties[peek.properties.length - 1].important = true;
 
 				break;
 
@@ -331,33 +362,6 @@ function getVariableValue(value) {
 	}
 
 	return value;
-}
-
-function getProperty(name, value) {
-	const idxImportant = value.indexOf('!important');
-
-	const isImportant = idxImportant !== -1;
-	if (isImportant) {
-		const endOfImportant = idxImportant + 11;
-		const endOfLine = value.length;
-
-		if (endOfImportant < endOfLine && value.substring(endOfImportant, endOfLine).trim().length > 0) {
-			throw new Error(`Unknown parameter after !important`);
-		}
-	}
-
-	let endIdx;
-	if (isImportant) {
-		endIdx = idxImportant;
-	} else {
-		endIdx = value.length;
-	}
-
-	return {
-		name: name,
-		value: value.substring(0, endIdx).trim(),
-		important: isImportant
-	};
 }
 
 module.exports = parseScss;
