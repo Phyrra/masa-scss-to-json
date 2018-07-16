@@ -1,3 +1,5 @@
+const tokenize = require('./tokenizer');
+
 // TODO: @media rules
 
 const Token = {
@@ -19,7 +21,7 @@ const Token = {
 	INCLUDE_DECLARATION: 'INCLUDE_DECLARATION'
 };
 
-const TokenExpression = {
+const GrammarTokens = {
 	[Token.IMPORT_DECLARATION]: {
 		regExp: new RegExp(/^@import\s+["']([^"']+)["']\s*;/),
 		start: true
@@ -130,10 +132,9 @@ const TokenExpression = {
 	}
 };
 
-function tokenize(lines) { // without comments
-	const tokens = [];
-
-	let nextTokensStack = [
+function parseScss(lines) {
+	const tokens = tokenize(
+		GrammarTokens,
 		[
 			Token.IMPORT_DECLARATION,
 			Token.VARIABLE_DECLARATION,
@@ -141,82 +142,9 @@ function tokenize(lines) { // without comments
 			Token.BLOCK_END,
 			Token.CONTROL_BLOCK_START,
 			Token.INCLUDE_DECLARATION
-		]
-	];
-
-	let unterminatedStatement = false;
-
-	for (let idx = 0; idx < lines.length; ++idx) {
-		let debugLine = lines[idx];
-
-		let skip = 0;
-		let line = debugLine;
-
-		while (line.length > 0) {
-			const nextTokens = nextTokensStack[nextTokensStack.length - 1];
-
-			const found = nextTokens
-				.some(token => {
-					const tokenExpression = TokenExpression[token];
-
-					const match = line.match(tokenExpression.regExp);
-					if (match) {
-						tokens.push({
-							match: match,
-							token: token
-						});
-
-						line = line.replace(tokenExpression.regExp, '').trim();
-						debugLine = line;
-
-						if (tokenExpression.start) {
-							unterminatedStatement = true;
-						} else {
-							nextTokensStack.pop();
-
-							if (nextTokensStack.length === 0) {
-								throw new Error(`Mismatched closing element ${match[0]}`);
-							}
-						}
-
-						if (tokenExpression.next) {
-							nextTokensStack.push(tokenExpression.next);
-						} else {
-							unterminatedStatement = false;
-						}
-
-						return true;
-					}
-
-					return false;
-				});
-
-			// prevent endless loop
-			if (!found) {
-				++skip;
-				if (idx + skip >= lines.length) {
-					throw new Error(
-						`Could not match ${debugLine}`
-					);
-				}
-
-				line = line + lines[idx + skip];
-			}
-		}
-
-		idx += skip;
-	}
-
-	// TODO: Not quite sure about this one yet
-	if (unterminatedStatement) {
-		throw new Error(`Unterminated statement`);
-	}
-
-	return tokens;
-}
-
-function parseScss(lines) {
-	const tokens = tokenize(lines);
+		],
+		lines
+	);
 
 	const _root = {
 		imports: [],
