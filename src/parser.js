@@ -16,32 +16,22 @@ const Token = {
 	INCLUDE_DECLARATION: 'INCLUDE_DECLARATION'
 };
 
-const BASE_TOKENS = [
-	Token.IMPORT_DECLARATION,
-	Token.VARIABLE_DECLARATION,
-	Token.ARRAY_DECLARATION,
-	Token.RULE_START,
-	Token.BLOCK_END,
-	Token.PROPERTY,
-	Token.CONTROL_BLOCK_START,
-	Token.INCLUDE_DECLARATION
-];
-
 const TokenExpression = {
 	[Token.IMPORT_DECLARATION]: {
 		regExp: new RegExp(/^@import\s+["']([^"']+)["']\s*;/),
-		next: BASE_TOKENS
+		start: true
 	},
 	[Token.VARIABLE_DECLARATION]: {
 		regExp: new RegExp(/^\$([^:\s]+)\s*:\s*([^\s(][^;]*);/),
-		next: BASE_TOKENS
+		start: true
 	},
 	[Token.ARRAY_DECLARATION]: {
 		regExp: new RegExp(/^\$([^:\s]+)\s*:\s*\(/),
 		next: [
 			Token.ARRAY_VALUE,
 			Token.ARRAY_END
-		]
+		],
+		start: true
 	},
 	[Token.ARRAY_VALUE]: {
 		regExp: new RegExp(/^([^,)]+)/),
@@ -57,66 +47,111 @@ const TokenExpression = {
 		]
 	},
 	[Token.ARRAY_END]: {
-		regExp: new RegExp(/^\)\s*(!default)?\s*;/),
-		next: BASE_TOKENS
+		regExp: new RegExp(/^\)\s*(!default)?\s*;/)
 	},
 	[Token.RULE_START]: {
 		regExp: new RegExp(/^([^@][^{]*)\{/),
-		next: BASE_TOKENS
+		next: [
+			Token.IMPORT_DECLARATION,
+			Token.VARIABLE_DECLARATION,
+			Token.ARRAY_DECLARATION,
+			Token.RULE_START,
+			Token.BLOCK_END,
+			Token.PROPERTY,
+			Token.CONTROL_BLOCK_START,
+			Token.INCLUDE_DECLARATION
+		],
+		start: true
 	},
 	[Token.BLOCK_END]: {
-		regExp: new RegExp(/^\}/),
-		next: BASE_TOKENS
+		regExp: new RegExp(/^\}/)
 	},
 	[Token.PROPERTY]: {
 		regExp: new RegExp(/^([^$][^:\s]*)\s*:\s*([^;]+);/),
-		next: BASE_TOKENS
+		start: true
 	},
 	[Token.CONTROL_BLOCK_START]: {
 		regExp: new RegExp(/^@(\w+)\s+([^{]+)\{/),
-		next: BASE_TOKENS
+		next: [
+			Token.IMPORT_DECLARATION,
+			Token.VARIABLE_DECLARATION,
+			Token.ARRAY_DECLARATION,
+			Token.RULE_START,
+			Token.BLOCK_END,
+			Token.PROPERTY,
+			Token.CONTROL_BLOCK_START,
+			Token.INCLUDE_DECLARATION
+		],
+		start: true
 	},
 	[Token.INCLUDE_DECLARATION]: {
 		regExp: new RegExp(/@include\s+([^;]+);/),
-		next: BASE_TOKENS
+		start: true
 	}
 };
 
 function tokenize(lines) { // without comments
-	const r = new RegExp(/^\$(\w|-)+\s*:\s*([^;]*);/);
-
 	const tokens = [];
-	let nextTokens = BASE_TOKENS;
+
+	let nextTokensStack = [
+		[
+			Token.IMPORT_DECLARATION,
+			Token.VARIABLE_DECLARATION,
+			Token.ARRAY_DECLARATION,
+			Token.RULE_START,
+			Token.BLOCK_END,
+			Token.PROPERTY,
+			Token.CONTROL_BLOCK_START,
+			Token.INCLUDE_DECLARATION
+		]
+	];
 
 	for (let idx = 0; idx < lines.length; ++idx) {
-		const origLine = lines[idx];
+		let debugLine = lines[idx];
 
 		let skip = 0;
-		let line = origLine;
+		let line = debugLine;
 
 		while (line.length > 0) {
-			const lengthBefore = line.length;
+			const nextTokens = nextTokensStack[nextTokensStack.length - 1];
 
-			nextTokens
+			const found = nextTokens
 				.some(token => {
-					const match = line.match(TokenExpression[token].regExp);
+					const tokenExpression = TokenExpression[token];
+
+					const match = line.match(tokenExpression.regExp);
 					if (match) {
 						tokens.push({
 							match: match,
 							token: token
 						});
 
-						line = line.replace(TokenExpression[token].regExp, '').trim();
-						nextTokens = TokenExpression[token].next;
+						line = line.replace(tokenExpression.regExp, '').trim();
+						debugLine = line;
+
+						if (!tokenExpression.start) {
+							nextTokensStack.pop();
+
+							if (nextTokensStack.length === 0) {
+								throw new Error(`Mismatched closing element on line #${idx + 1}: ${match[0]}`);
+							}
+						}
+						if (tokenExpression.next) {
+							nextTokensStack.push(tokenExpression.next);
+						}
+
+						return true;
 					}
+
+					return false;
 				});
 
 			// prevent endless loop
-			if (lengthBefore === line.length) {
+			if (!found) {
 				++skip;
 				if (idx + skip >= lines.length) {
 					throw new Error(
-						`Could not match line #${idx + 1}: ${origLine} (allowed Tokens: [${nextTokens.join(', ')}])`
+						`Could not match line #${idx + 1}: ${debugLine}`
 					);
 				}
 
@@ -130,47 +165,8 @@ function tokenize(lines) { // without comments
 	return tokens;
 }
 
-function validate(tokens) {
-	const stack = [];
-
-	tokens.forEach(token => {
-		switch (token.token) {
-			case Token.IMPORT_DECLARATION:
-				if (stack.length !== 0) {
-					throw new Error('Import is only allowed in root');
-				}
-
-				break;
-			
-			case Token.RULE_START:
-			case Token.CONTROL_BLOCK_START:
-				stack.push(token);
-				
-				break;
-
-			case Token.BLOCK_END:
-				if (stack.length === 0) {
-					throw new Error('Mismatched closing bracket');
-				}
-
-				break;
-
-			case Token.PROPERTY:
-				if (stack.length === 0) {
-					throw new Error('Properties are only allowed inside rules');
-				}
-
-				break;
-			
-			default:
-				// Nothing to do
-		}
-	})
-}
-
 function parseScss(lines) {
 	const tokens = tokenize(lines);
-	validate(tokens);
 
 	const _root = {
 		imports: [],
@@ -194,7 +190,7 @@ function parseScss(lines) {
 				peek.variables.push(
 					getVariable(token.match[1].trim(), token.match[2].trim())
 				);
-				
+
 				break;
 
 			case Token.ARRAY_DECLARATION:
@@ -202,7 +198,7 @@ function parseScss(lines) {
 					name: token.match[1].trim(),
 					value: []
 				});
-				
+
 				break;
 
 			case Token.ARRAY_VALUE:
@@ -227,24 +223,26 @@ function parseScss(lines) {
 			case Token.RULE_START:
 				peek.rules.push({
 					selector: token.match[1].trim(),
+					imports: [],
 					variables: [],
 					rules: [],
-					properties: [],
-					blocks: []
+					blocks: [],
+					properties: []
 				});
 
 				stack.push(peek.rules[peek.rules.length - 1]);
 
 				break;
-		
+
 			case Token.CONTROL_BLOCK_START:
 				peek.blocks.push({
 					type: token.match[1].trim(),
 					condition: token.match[2].trim(),
+					imports: [],
 					variables: [],
 					rules: [],
-					properties: [],
-					blocks: []
+					blocks: [],
+					properties: []
 				});
 
 				stack.push(peek.blocks[peek.blocks.length - 1]);

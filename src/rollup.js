@@ -3,18 +3,28 @@ const path = require('path');
 const reader = require('./reader');
 const parser = require('./parser');
 
-function collapse(baseDir, parentFile, data) {
-	data.imports.forEach(importFile => {
-		const result = parser(
-			reader(
-				getImportPath(baseDir, parentFile, importFile)
-			)
-		);
+function mergeFileToBlock(baseDir, parentFile, importFile, block) {
+	const result = parser(
+		reader(
+			getImportPath(baseDir, parentFile, importFile)
+		)
+	);
 
-		collapse(baseDir, importFile, result);
+	collapseImports(baseDir, importFile, result);
 
-		result.rules.forEach(rule => data.rules.unshift(rule));
-		result.variables.forEach(variable => data.variables.unshift(variable));
+	result.rules.forEach(newRule => block.rules.unshift(newRule));
+	result.variables.forEach(newVariable => block.variables.unshift(newVariable));
+}
+
+function collapseImports(baseDir, parentFile, block) {
+	block.imports.forEach(importFile => {
+		mergeFileToBlock(baseDir, parentFile, importFile, block);
+	});
+
+	block.rules.forEach(rule => {
+		rule.imports.forEach(importFile => {
+			mergeFileToBlock(baseDir, parentFile, importFile, rule);
+		});
 	});
 }
 
@@ -30,6 +40,10 @@ function rollupVariables(parentScope, variables) {
 	const map = {};
 
 	variables.forEach(variable => {
+		if (parentScope.hasOwnProperty(variable.name)) {
+			throw new Error(`Variable ${variable.name} already exists in parent scope`);
+		}
+
 		if (map.hasOwnProperty(variable.name)) {
 			if (variable.default) {
 				return; // nothing to do
@@ -164,7 +178,7 @@ module.exports = (baseDir, file) => {
 		reader(startFile)
 	);
 
-	collapse(baseDir, startFile, result);
+	collapseImports(baseDir, startFile, result);
 
 	return finalizeBlock({}, result);
 };
