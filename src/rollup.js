@@ -2,6 +2,7 @@ const path = require('path');
 
 const reader = require('./reader');
 const parser = require('./parser');
+const { resolveVariable, resolveProperty } = require('./variable');
 
 function mergeFileToBlock(baseDir, parentFile, importFile, block) {
 	const result = parser(
@@ -55,95 +56,15 @@ function rollupVariables(parentScope, variables) {
 		const totalMap = Object.assign({}, parentScope, map);
 
 		if (Array.isArray(variable.value)) {
-			variable.value = variable.value.map(val => resolveVariableValues(val, totalMap));
+			variable.value = variable.value.map(val => resolveVariable(val, totalMap));
 		} else if (typeof variable.value === 'string') {
-			variable.value = resolveVariableValues(variable.value, totalMap);
+			variable.value = resolveVariable(variable.value, totalMap);
 		}
 
 		map[variable.name] = variable.value;
 	});
 
 	return map;
-}
-
-const KNOWN_FUNCTIONS = {
-	'nth': (args, variables) => {
-		if (!args[0].startsWith('$')) {
-			throw new Error(`Expected variable, got ${args[0]}`);
-		}
-
-		const arrName = args[0].substring(1);
-		if (!variables.hasOwnProperty(arrName)) {
-			throw new Error(`Unknown variable ${arrName}`);
-		}
-
-		const arr = variables[arrName];
-		if (!Array.isArray(arr)) {
-			throw new Error(`Expected array, got ${typeof arr}`);
-		}
-
-		let idx;
-		if (args[1].startsWith('$')) {
-			const idxName = args[1].substring(1);
-			if (!variables.hasOwnProperty(idxName)) {
-				throw new Error(`Unknown variable ${idxName}`);
-			}
-
-			idx = variables[idxName];
-		} else {
-			idx = args[1];
-		}
-
-		if (!idx.toString().match(/^\d+$/)) {
-			throw new Error(`Expected int, got ${idx}`);
-		}
-
-		const intIdx = parseInt(idx, 10) - 1;
-		if (intIdx >= arr.length) {
-			throw new Error(`Array index out of bounds`);
-		}
-
-		return arr[intIdx];
-	}
-}
-
-function replaceVariableValues(value, variables) {
-	return value
-		.replace(/([\w-]+)\(([^\)]*)\)/g, (grp) => {
-			const match = grp.match(/([\w-]+)\(([^\)]*)\)/);
-
-			if (KNOWN_FUNCTIONS.hasOwnProperty(match[1])) {
-				const args = match[2].split(',')
-					.map(arg => arg.trim());
-
-				return KNOWN_FUNCTIONS[match[1]](args, variables);
-			}
-
-			return grp;
-		})
-		.replace(/\$[^\s,]+/g, (grp) => {
-			const name = grp.substring(1);
-
-			if (!variables.hasOwnProperty(name)) {
-				throw new Error(`Unknown variable ${name}`);
-			}
-
-			return variables[name].toString();
-		}).trim();
-}
-
-function resolveVariableValues(value, variables) {
-	const replaced = replaceVariableValues(value.toString(), variables);
-
-	if (replaced.match(/^[+-]?\d+$/)) {
-		return parseInt(replaced, 10);
-	}
-
-	if (replaced.match(/^[+-]?(\d*\.\d+|\d+\.\d*)$/)) {
-		return parseFloat(replaced);
-	}
-
-	return replaced;
 }
 
 function finalizeBlock(parentScope, data) {
@@ -164,7 +85,7 @@ function finalizeBlock(parentScope, data) {
 
 	if (data.hasOwnProperty('properties')) {
 		result.properties = data.properties.map(
-			property => Object.assign(property, { value: replaceVariableValues(property.value, allRolledUpVariables) })
+			property => Object.assign(property, { value: resolveProperty(property.value, allRolledUpVariables) })
 		)
 	}
 

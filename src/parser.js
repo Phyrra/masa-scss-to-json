@@ -1,7 +1,3 @@
-// TODO: @mixin + @include
-// TODO: @if / @else / ...
-// TODO: @for
-
 const Token = {
 	IMPORT_DECLARATION: 'IMPORT_DECLARATION',
 	VARIABLE_DECLARATION: 'VARIABLE_DECLARATION',
@@ -311,7 +307,7 @@ function getVariableValue(value) {
 	}
 
 	if (value.match(/^[+-]?\d+$/)) {
-		return parseInt(value);
+		return parseInt(value, 10);
 	}
 
 	if (value.match(/^[+-]?(\d*\.\d+|\d+\.\d*)$/)) {
