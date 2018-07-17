@@ -1,9 +1,7 @@
-function tokenize(grammarTokens, rootTokens, lines) { // without comments
+function tokenize(grammarTokens, rootStatement, lines) { // without comments
 	const tokens = [];
 
-	let nextTokensStack = [rootTokens];
-
-	let unterminatedStatement = false;
+	let nextTokensStack = [rootStatement.next];
 
 	for (let idx = 0; idx < lines.length; ++idx) {
 		let debugLine = lines[idx];
@@ -15,22 +13,25 @@ function tokenize(grammarTokens, rootTokens, lines) { // without comments
 			const nextTokens = nextTokensStack[nextTokensStack.length - 1];
 
 			const found = nextTokens
-				.some(token => {
-					const tokenExpression = grammarTokens[token];
+				.some(node => {
+					const token = node.token;
 
-					const match = line.match(tokenExpression.regExp);
+					if (!grammarTokens.hasOwnProperty(token)) {
+						throw new Error(`Unknown token ${token}`);
+					}
+					const tokenExpression = grammarTokens[token].regExp;
+
+					const match = line.match(tokenExpression);
 					if (match) {
 						tokens.push({
 							match: match,
 							token: token
 						});
 
-						line = line.replace(tokenExpression.regExp, '').trim();
+						line = line.replace(tokenExpression, '').trim();
 						debugLine = line;
 
-						if (tokenExpression.start) {
-							unterminatedStatement = true;
-						} else {
+						if (!node.start) {
 							nextTokensStack.pop();
 
 							if (nextTokensStack.length === 0) {
@@ -38,10 +39,8 @@ function tokenize(grammarTokens, rootTokens, lines) { // without comments
 							}
 						}
 
-						if (tokenExpression.next) {
-							nextTokensStack.push(tokenExpression.next);
-						} else {
-							unterminatedStatement = false;
+						if (node.next) {
+							nextTokensStack.push(node.next);
 						}
 
 						return true;
@@ -67,7 +66,8 @@ function tokenize(grammarTokens, rootTokens, lines) { // without comments
 	}
 
 	// TODO: Not quite sure about this one yet
-	if (unterminatedStatement) {
+	nextTokensStack.pop();
+	if (nextTokensStack.length > 0) {
 		throw new Error(`Unterminated statement`);
 	}
 

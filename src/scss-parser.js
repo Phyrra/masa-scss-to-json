@@ -21,128 +21,200 @@ const Token = {
 	INCLUDE_DECLARATION: 'INCLUDE_DECLARATION'
 };
 
-const GrammarTokens = {
+const TokenDefinition = {
 	[Token.IMPORT_DECLARATION]: {
-		regExp: new RegExp(/^@import\s+["']([^"']+)["']\s*;/),
-		start: true
+		regExp: new RegExp(/^@import\s+["']([^"']+)["']\s*;/)
 	},
 	[Token.VARIABLE_DECLARATION]: {
-		regExp: new RegExp(/^\$([^:\s]+)\s*:/),
-		next: [
-			Token.VARIABLE_PLAIN_VALUE,
-			Token.VARIABLE_ARRAY_VALUE
-		],
-		start: true
+		regExp: new RegExp(/^\$([^:\s]+)\s*:/)
 	},
 	[Token.VARIABLE_PLAIN_VALUE]: {
-		regExp: new RegExp(/^([^(][^!;]*)/),
-		next: [
-			Token.VARIABLE_DEFAULT,
-			Token.STATEMENT_END
-		]
+		regExp: new RegExp(/^([^(][^!;]*)/)
 	},
 	[Token.VARIABLE_ARRAY_VALUE]: {
-		regExp: new RegExp(/^\(/),
-		next: [
-			Token.ARRAY_VALUE,
-			Token.ARRAY_END
-		]
+		regExp: new RegExp(/^\(/)
 	},
 	[Token.ARRAY_VALUE]: {
-		regExp: new RegExp(/^([^,)]+)/),
-		next: [
-			Token.ARRAY_SEPARATOR,
-			Token.ARRAY_END
-		]
+		regExp: new RegExp(/^([^,)]+)/)
 	},
 	[Token.ARRAY_SEPARATOR]: {
-		regExp: new RegExp(/^,/),
-		next: [
-			Token.ARRAY_VALUE
-		]
+		regExp: new RegExp(/^,/)
 	},
 	[Token.ARRAY_END]: {
-		regExp: new RegExp(/^\)/),
-		next: [
-			Token.VARIABLE_DEFAULT,
-			Token.STATEMENT_END
-		]
+		regExp: new RegExp(/^\)/)
 	},
 	[Token.VARIABLE_DEFAULT]: {
-		regExp: new RegExp(/^!default/),
-		next: [
-			Token.STATEMENT_END
-		]
+		regExp: new RegExp(/^!default/)
 	},
 	[Token.STATEMENT_END]: {
 		regExp: new RegExp(/^;/)
 	},
 	[Token.RULE_START]: {
-		regExp: new RegExp(/^([^@][^{]*)\{/),
-		next: [
-			Token.IMPORT_DECLARATION,
-			Token.VARIABLE_DECLARATION,
-			Token.RULE_START,
-			Token.BLOCK_END,
-			Token.PROPERTY_DECLARATION,
-			Token.CONTROL_BLOCK_START,
-			Token.INCLUDE_DECLARATION
-		],
-		start: true
+		regExp: new RegExp(/^([^@$]([^#{]|#{?)*)\{/)
 	},
 	[Token.BLOCK_END]: {
 		regExp: new RegExp(/^\}/)
 	},
 	[Token.PROPERTY_DECLARATION]: {
-		regExp: new RegExp(/^([\w-]+)\s*:/),
-		next: [
-			Token.PROPERTY_VALUE
-		],
-		start: true
+		regExp: new RegExp(/^([\w-]+)\s*:/)
 	},
 	[Token.PROPERTY_VALUE]: {
-		regExp: new RegExp(/^([^!;]+)/),
-		next: [
-			Token.PROPERTY_IMPORTANT,
-			Token.STATEMENT_END
-		]
+		regExp: new RegExp(/^([^!;]+)/)
 	},
 	[Token.PROPERTY_IMPORTANT]: {
-		regExp: new RegExp(/^!important/),
-		next: [
-			Token.STATEMENT_END
-		]
+		regExp: new RegExp(/^!important/)
 	},
 	[Token.CONTROL_BLOCK_START]: {
-		regExp: new RegExp(/^@(\w+)\s+([^{]+)\{/),
-		next: [
-			Token.IMPORT_DECLARATION,
-			Token.VARIABLE_DECLARATION,
-			Token.RULE_START,
-			Token.BLOCK_END,
-			Token.PROPERTY_DECLARATION,
-			Token.CONTROL_BLOCK_START,
-			Token.INCLUDE_DECLARATION
-		],
-		start: true
+		regExp: new RegExp(/^@(\w+)\s*([^{]*)\{/)
 	},
 	[Token.INCLUDE_DECLARATION]: {
-		regExp: new RegExp(/@include\s+([^;]+);/),
-		start: true
+		regExp: new RegExp(/@include\s+([^;]+);/)
 	}
 };
 
+const importStatement = {
+	start: true,
+	token: Token.IMPORT_DECLARATION
+};
+
+const arrayEnd = {
+	token: Token.ARRAY_END,
+	next: [
+		{
+			token: Token.VARIABLE_DEFAULT,
+			next: [
+				{
+					token: Token.STATEMENT_END
+				}
+			]
+		}, {
+			token: Token.STATEMENT_END
+		}
+	]
+};
+
+const arrayValueLoop = {
+	token: Token.ARRAY_VALUE,
+	next: [
+		arrayEnd,
+		{
+			token: Token.ARRAY_SEPARATOR,
+			get next() {
+				return [arrayValueLoop];
+			}
+		}
+	]
+};
+
+const variableStatement = {
+	start: true,
+	token: Token.VARIABLE_DECLARATION,
+	next: [
+		{
+			token: Token.VARIABLE_PLAIN_VALUE,
+			next: [
+				{
+					token: Token.VARIABLE_DEFAULT,
+					next: [
+						{
+							token: Token.STATEMENT_END
+						}
+					]
+				}, {
+					token: Token.STATEMENT_END
+				}
+			]
+		}, {
+			token: Token.VARIABLE_ARRAY_VALUE,
+			next: [
+				arrayEnd,
+				arrayValueLoop
+			]
+		}
+	]
+};
+
+const propertyStatement = {
+	start: true,
+	token: Token.PROPERTY_DECLARATION,
+	next: [
+		{
+			token: Token.PROPERTY_VALUE,
+			next: [
+				{
+					token: Token.STATEMENT_END
+				}, {
+					token: Token.PROPERTY_IMPORTANT,
+					next: [
+						{
+							token: Token.STATEMENT_END
+						}
+					]
+				}
+			]
+		}
+	]
+};
+
+const includeStatement = {
+	start: true,
+	token: Token.INCLUDE_DECLARATION
+};
+
+let ruleStatement;
+let blockStatement;
+
+ruleStatement = {
+	start: true,
+	token: Token.RULE_START,
+	get next() {
+		return [
+			{
+				token: Token.BLOCK_END
+			},
+			ruleStatement,
+			blockStatement,
+			variableStatement,
+			importStatement,
+			includeStatement,
+			propertyStatement
+		];
+	}
+};
+
+blockStatement = {
+	start: true,
+	token: Token.CONTROL_BLOCK_START,
+	get next() {
+		return [
+			{
+				token: Token.BLOCK_END
+			},
+			ruleStatement,
+			blockStatement,
+			variableStatement,
+			importStatement,
+			includeStatement,
+			propertyStatement
+		];
+	}
+};
+
+const rootStatement = {
+	start: true,
+	next: [
+		ruleStatement,
+		blockStatement,
+		importStatement,
+		variableStatement,
+		includeStatement
+	]
+}
+
 function parseScss(lines) {
 	const tokens = tokenize(
-		GrammarTokens,
-		[
-			Token.IMPORT_DECLARATION,
-			Token.VARIABLE_DECLARATION,
-			Token.RULE_START,
-			Token.BLOCK_END,
-			Token.CONTROL_BLOCK_START,
-			Token.INCLUDE_DECLARATION
-		],
+		TokenDefinition,
+		rootStatement,
 		lines
 	);
 
