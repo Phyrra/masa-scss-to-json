@@ -17,6 +17,16 @@ function tokenize(grammarTokens, rootStatement, lines) { // without comments
 					const token = node.token;
 
 					if (!grammarTokens.hasOwnProperty(token)) {
+						console.log(
+							'FOUND_TOKENS',
+							tokens.map(token => token.token + ' [' + token.match.slice(1).join(', ') + ']')
+						);
+	
+						console.log(
+							'NEXT_TOKENS',
+							nextTokens.map(token => token.token)
+						);
+
 						throw new Error(`Unknown token ${token}`);
 					}
 					const tokenExpression = grammarTokens[token].regExp;
@@ -53,6 +63,16 @@ function tokenize(grammarTokens, rootStatement, lines) { // without comments
 			if (!found) {
 				++skip;
 				if (idx + skip >= lines.length) {
+					console.log(
+						'FOUND_TOKENS',
+						tokens.map(token => token.token + ' [' + token.match.slice(1).join(', ') + ']')
+					);
+
+					console.log(
+						'NEXT_TOKENS',
+						nextTokens.map(token => token.token)
+					);
+
 					throw new Error(
 						`Could not match ${debugLine}`
 					);
@@ -68,6 +88,17 @@ function tokenize(grammarTokens, rootStatement, lines) { // without comments
 	// TODO: Not quite sure about this one yet
 	nextTokensStack.pop();
 	if (nextTokensStack.length > 0) {
+		console.log(
+			'FOUND_TOKENS',
+			tokens.map(token => token.token + ' [' + token.match.slice(1).join(', ') + ']')
+		);
+
+		console.log(
+			nextTokensStack.length,
+			'NEXT_TOKENS',
+			nextTokensStack[nextTokensStack.length - 1].map(token => token.token)
+		);
+
 		throw new Error(`Unterminated statement`);
 	}
 

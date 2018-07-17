@@ -209,7 +209,7 @@ const rootStatement = {
 		variableStatement,
 		includeStatement
 	]
-}
+};
 
 function parseScss(lines) {
 	const tokens = tokenize(
