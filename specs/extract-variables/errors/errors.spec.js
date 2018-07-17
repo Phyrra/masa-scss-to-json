@@ -43,7 +43,7 @@ describe('errors', () => {
 		it('should throw an error if something follows !default', () => {
 			expect(() => {
 				scssToJson('./specs/extract-variables/errors', 'bad-variable-important-after-default');
-			}).toThrowError(/Could not match !important/);
+			}).toThrowError(/Could not match/);
 		});
 
 		// TODO: Not sure if this should throw or not..
@@ -51,7 +51,7 @@ describe('errors', () => {
 		it('should throw an error for an unterminated variable if it is the last statement', () => {
 			expect(() => {
 				scssToJson('./specs/extract-variables/errors', 'unterminated-variable');
-			}).toThrowError('Unterminated statement');
+			}).toThrowError(/Could not match/);
 		});
 	});
 });

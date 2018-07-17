@@ -22,199 +22,204 @@ const Token = {
 };
 
 const TokenDefinition = {
-	[Token.IMPORT_DECLARATION]: {
-		regExp: new RegExp(/^@import\s+["']([^"']+)["']\s*;/)
-	},
-	[Token.VARIABLE_DECLARATION]: {
-		regExp: new RegExp(/^\$([^:\s]+)\s*:/)
-	},
-	[Token.VARIABLE_PLAIN_VALUE]: {
-		regExp: new RegExp(/^([^(][^!;]*)/)
-	},
-	[Token.VARIABLE_ARRAY_VALUE]: {
-		regExp: new RegExp(/^\(/)
-	},
-	[Token.ARRAY_VALUE]: {
-		regExp: new RegExp(/^([^,)]+)/)
-	},
-	[Token.ARRAY_SEPARATOR]: {
-		regExp: new RegExp(/^,/)
-	},
-	[Token.ARRAY_END]: {
-		regExp: new RegExp(/^\)/)
-	},
-	[Token.VARIABLE_DEFAULT]: {
-		regExp: new RegExp(/^!default/)
-	},
-	[Token.STATEMENT_END]: {
-		regExp: new RegExp(/^;/)
-	},
-	[Token.RULE_START]: {
-		regExp: new RegExp(/^([^@$]([^#{]|#{?)*)\{/)
-	},
-	[Token.BLOCK_END]: {
-		regExp: new RegExp(/^\}/)
-	},
-	[Token.PROPERTY_DECLARATION]: {
-		regExp: new RegExp(/^([\w-]+)\s*:/)
-	},
-	[Token.PROPERTY_VALUE]: {
-		regExp: new RegExp(/^([^!;]+)/)
-	},
-	[Token.PROPERTY_IMPORTANT]: {
-		regExp: new RegExp(/^!important/)
-	},
-	[Token.CONTROL_BLOCK_START]: {
-		regExp: new RegExp(/^@(\w+)\s*([^{]*)\{/)
-	},
-	[Token.INCLUDE_DECLARATION]: {
-		regExp: new RegExp(/@include\s+([^;]+);/)
+	[Token.IMPORT_DECLARATION]: new RegExp(/^@import\s+["']([^"']+)["']\s*;/),
+	[Token.VARIABLE_DECLARATION]: new RegExp(/^\$([^:\s]+)\s*:/),
+	[Token.VARIABLE_PLAIN_VALUE]: new RegExp(/^([^(][^!;\n]*)/),
+	[Token.VARIABLE_ARRAY_VALUE]: new RegExp(/^\(/),
+	[Token.ARRAY_VALUE]: new RegExp(/^([^,)]+)/),
+	[Token.ARRAY_SEPARATOR]: new RegExp(/^,/),
+	[Token.ARRAY_END]: new RegExp(/^\)/),
+	[Token.VARIABLE_DEFAULT]: new RegExp(/^!\s*default/),
+	[Token.STATEMENT_END]: new RegExp(/^;/),
+	[Token.RULE_START]: new RegExp(/^([^@$]([^#{;]|#{?)*)\{/),
+	[Token.BLOCK_END]: new RegExp(/^\}/),
+	[Token.PROPERTY_DECLARATION]: new RegExp(/^([\w-]+)\s*:/),
+	[Token.PROPERTY_VALUE]: new RegExp(/^([^!;\n]+)/),
+	[Token.PROPERTY_IMPORTANT]: new RegExp(/^!\s*important/),
+	[Token.CONTROL_BLOCK_START]: new RegExp(/^@(\w+)\s*([^{;]*)\{/),
+	[Token.INCLUDE_DECLARATION]: new RegExp(/^@include\s+([^;]+);/)
+};
+
+const importStatement = [
+	{
+		token: Token.IMPORT_DECLARATION
 	}
-};
+];
 
-const importStatement = {
-	start: true,
-	token: Token.IMPORT_DECLARATION
-};
+const plainVariableStatement = [
+	{
+		token: Token.VARIABLE_PLAIN_VALUE
+	}
+];
 
-const arrayEnd = {
-	token: Token.ARRAY_END,
-	next: [
+const arrayVariableStatement = [
+	{
+		token: Token.VARIABLE_ARRAY_VALUE
+	},
+	[
 		{
-			token: Token.VARIABLE_DEFAULT,
-			next: [
+			token: Token.ARRAY_VALUE
+		},
+		{
+			canRepeat: true,
+			statement: [
 				{
-					token: Token.STATEMENT_END
+					token: Token.ARRAY_VALUE
+				},
+				{
+					token: Token.ARRAY_SEPARATOR
 				}
 			]
-		}, {
+		},
+		{
+			empty: true
+		}
+	],
+	{
+		token: Token.ARRAY_END
+	}
+];
+
+const variableStatement = [
+	{
+		token: Token.VARIABLE_DECLARATION,
+	},
+	[
+		{
+			statement: plainVariableStatement
+		},
+		{
+			statement: arrayVariableStatement
+		}
+	],
+	[
+		{
 			token: Token.STATEMENT_END
-		}
-	]
-};
-
-const arrayValueLoop = {
-	token: Token.ARRAY_VALUE,
-	next: [
-		arrayEnd,
+		},
 		{
-			token: Token.ARRAY_SEPARATOR,
-			get next() {
-				return [arrayValueLoop];
-			}
-		}
-	]
-};
-
-const variableStatement = {
-	start: true,
-	token: Token.VARIABLE_DECLARATION,
-	next: [
-		{
-			token: Token.VARIABLE_PLAIN_VALUE,
-			next: [
+			statement: [
 				{
-					token: Token.VARIABLE_DEFAULT,
-					next: [
-						{
-							token: Token.STATEMENT_END
-						}
-					]
-				}, {
-					token: Token.STATEMENT_END
-				}
-			]
-		}, {
-			token: Token.VARIABLE_ARRAY_VALUE,
-			next: [
-				arrayEnd,
-				arrayValueLoop
-			]
-		}
-	]
-};
-
-const propertyStatement = {
-	start: true,
-	token: Token.PROPERTY_DECLARATION,
-	next: [
-		{
-			token: Token.PROPERTY_VALUE,
-			next: [
+					token: Token.VARIABLE_DEFAULT
+				},
 				{
 					token: Token.STATEMENT_END
-				}, {
-					token: Token.PROPERTY_IMPORTANT,
-					next: [
-						{
-							token: Token.STATEMENT_END
-						}
-					]
 				}
 			]
 		}
 	]
-};
+];
 
-const includeStatement = {
-	start: true,
-	token: Token.INCLUDE_DECLARATION
-};
+const propertyStatement = [
+	{
+		token: Token.PROPERTY_DECLARATION
+	},
+	{
+		token: Token.PROPERTY_VALUE
+	},
+	[
+		{
+			token: Token.PROPERTY_IMPORTANT
+		},
+		{
+			empty: true
+		}
+	],
+	{
+		token: Token.STATEMENT_END
+	}
+];
+
+const includeStatement = [
+	{
+		token: Token.INCLUDE_DECLARATION
+	}
+];
 
 let ruleStatement;
 let blockStatement;
 
-ruleStatement = {
-	start: true,
-	token: Token.RULE_START,
-	get next() {
-		return [
-			{
-				token: Token.BLOCK_END
-			},
-			ruleStatement,
-			blockStatement,
-			variableStatement,
-			importStatement,
-			includeStatement,
-			propertyStatement
-		];
+ruleStatement = [
+	{
+		token: Token.RULE_START
+	},
+	[
+		{
+			canRepeat: true,
+			get statement() { return ruleStatement; }
+		},
+		{
+			canRepeat: true,
+			get statement() { return blockStatement; }
+		},
+		{
+			canRepeat: true,
+			statement: variableStatement
+		},
+		{
+			canRepeat: true,
+			statement: importStatement
+		},
+		{
+			canRepeat: true,
+			statement: includeStatement
+		},
+		{
+			canRepeat: true,
+			statement: propertyStatement
+		}
+	],
+	{
+		token: Token.BLOCK_END
 	}
-};
+];
 
-blockStatement = {
-	start: true,
-	token: Token.CONTROL_BLOCK_START,
-	get next() {
-		return [
-			{
-				token: Token.BLOCK_END
-			},
-			ruleStatement,
-			blockStatement,
-			variableStatement,
-			importStatement,
-			includeStatement,
-			propertyStatement
-		];
+blockStatement = [
+	{
+		token: Token.CONTROL_BLOCK_START
+	},
+	[
+		{
+			canRepeat: true,
+			get statement() { return ruleStatement; }
+		},
+		{
+			canRepeat: true,
+			get statement() { return blockStatement; }
+		},
+		{
+			canRepeat: true,
+			statement: variableStatement
+		},
+		{
+			canRepeat: true,
+			statement: importStatement
+		},
+		{
+			canRepeat: true,
+			statement: includeStatement
+		},
+		{
+			canRepeat: true,
+			statement: propertyStatement
+		}
+	],
+	{
+		token: Token.BLOCK_END
 	}
-};
+];
 
-const rootStatement = {
-	start: true,
-	next: [
-		ruleStatement,
-		blockStatement,
-		importStatement,
-		variableStatement,
-		includeStatement
-	]
-};
+const scssStatement = [
+	ruleStatement,
+	blockStatement,
+	importStatement,
+	variableStatement,
+	includeStatement
+];
 
 function parseScss(lines) {
 	const tokens = tokenize(
 		TokenDefinition,
-		rootStatement,
+		scssStatement,
 		lines
 	);
 

@@ -1,108 +1,145 @@
-function tokenize(grammarTokens, rootStatement, lines) { // without comments
-	const tokens = [];
+let TokenDefinitions = {};
 
-	let nextTokensStack = [rootStatement.next];
+function travelAst(tokenDefinitions, root, lines) {
+	// This is a hack to not have to pass the token definitions along
+	Object.assign(TokenDefinitions, tokenDefinitions);
 
-	for (let idx = 0; idx < lines.length; ++idx) {
-		let debugLine = lines[idx];
+	let oneLine = lines.join('\n').trim(); // Screw whitespace, let's do it later
 
-		let skip = 0;
-		let line = debugLine;
+	let tokens = [];
 
-		while (line.length > 0) {
-			const nextTokens = nextTokensStack[nextTokensStack.length - 1];
+	while (oneLine.length > 0) {
+		const found = root.some(statement => {
+			const match = canMatchStatement(statement, 0, oneLine, []);
+			if (match) {
+				oneLine = match.line;
+				tokens = tokens.concat(match.tokens);
 
-			const found = nextTokens
-				.some(node => {
-					const token = node.token;
-
-					if (!grammarTokens.hasOwnProperty(token)) {
-						console.log(
-							'FOUND_TOKENS',
-							tokens.map(token => token.token + ' [' + token.match.slice(1).join(', ') + ']')
-						);
-	
-						console.log(
-							'NEXT_TOKENS',
-							nextTokens.map(token => token.token)
-						);
-
-						throw new Error(`Unknown token ${token}`);
-					}
-					const tokenExpression = grammarTokens[token].regExp;
-
-					const match = line.match(tokenExpression);
-					if (match) {
-						tokens.push({
-							match: match,
-							token: token
-						});
-
-						line = line.replace(tokenExpression, '').trim();
-						debugLine = line;
-
-						if (!node.start) {
-							nextTokensStack.pop();
-
-							if (nextTokensStack.length === 0) {
-								throw new Error(`Mismatched closing element ${match[0]}`);
-							}
-						}
-
-						if (node.next) {
-							nextTokensStack.push(node.next);
-						}
-
-						return true;
-					}
-
-					return false;
-				});
-
-			// prevent endless loop
-			if (!found) {
-				++skip;
-				if (idx + skip >= lines.length) {
-					console.log(
-						'FOUND_TOKENS',
-						tokens.map(token => token.token + ' [' + token.match.slice(1).join(', ') + ']')
-					);
-
-					console.log(
-						'NEXT_TOKENS',
-						nextTokens.map(token => token.token)
-					);
-
-					throw new Error(
-						`Could not match ${debugLine}`
-					);
-				}
-
-				line = line + lines[idx + skip];
+				return true;
 			}
+
+			return false;
+		});
+
+		if (!found) {
+			throw new Error(`Could not match ${oneLine}`);
 		}
-
-		idx += skip;
 	}
 
-	// TODO: Not quite sure about this one yet
-	nextTokensStack.pop();
-	if (nextTokensStack.length > 0) {
-		console.log(
-			'FOUND_TOKENS',
-			tokens.map(token => token.token + ' [' + token.match.slice(1).join(', ') + ']')
-		);
-
-		console.log(
-			nextTokensStack.length,
-			'NEXT_TOKENS',
-			nextTokensStack[nextTokensStack.length - 1].map(token => token.token)
-		);
-
-		throw new Error(`Unterminated statement`);
-	}
+	//console.log(tokens.map(token => token.token + ' [' + token.match.slice(1).join(', ' + ']')));
 
 	return tokens;
 }
 
-module.exports = tokenize;
+function canMatchStatement(statement, i, line, tokens) {
+	if (i >= statement.length) {
+		return {
+			tokens: tokens,
+			line: line
+		};
+	}
+
+	const part = statement[i];
+
+	if (Array.isArray(part)) {
+		const partials = part
+			.map(option => {
+				const match = canMatchPart(option, line);
+				if (match) {
+					return {
+						part: option,
+						match: match
+					};
+				}
+
+				return null;
+			})
+			.filter(match => !!match);
+
+		const matches = partials
+			.map(partial => {
+				if (partial.part.canRepeat) {
+					const match = canMatchStatement(statement, i, partial.match.line, partial.match.tokens);
+					if (match) {
+						return match;
+					}
+				}
+
+				return canMatchStatement(statement, i + 1, partial.match.line, partial.match.tokens);
+			})
+			.filter(match => !!match);
+
+		if (matches.length === 0) {
+			return null;
+		}
+
+		if (matches.length > 1) {
+			console.log(tokens.map(token => token.token + ' [' + token.match.slice(1).join(', ') + ']'));
+			matches.forEach(match => console.log(match.tokens.map(token => token.token + ' [' + token.match.slice(1).join(', ') + ']')));
+			throw new Error(`Multiple matches for ${line}`);
+		}
+
+		return {
+			tokens: tokens.concat(matches[0].tokens),
+			line: matches[0].line
+		};
+	}
+
+	const match = canMatchPart(part, line);
+	if (match) {
+		if (part.canRepeat) {
+			const repeatMatch = canMatchStatement(statement, i, match.line, match.tokens);
+			if (repeatMatch) {
+				return {
+					tokens: tokens.concat(repeatMatch.tokens),
+					line: repeatMatch.line
+				};
+			}
+		}
+
+		const nextMatch = canMatchStatement(statement, i + 1, match.line, match.tokens);
+		if (nextMatch) {
+			return {
+				tokens: tokens.concat(nextMatch.tokens),
+				line: nextMatch.line
+			};
+		}
+	}
+
+	return null;
+}
+
+function canMatchPart(part, line) {
+	if (part.statement) {
+		return canMatchStatement(part.statement, 0, line, []);
+	}
+
+	if (part.token) {
+		const match = line.match(TokenDefinitions[part.token]);
+		if (match) {
+			//console.log(part.token, match);
+
+			return {
+				tokens: [{
+					token: part.token,
+					match: match
+				}],
+				line: line.replace(TokenDefinitions[part.token], '').trim() // TODO
+			};
+		}
+
+		return null;
+	}
+
+	if (part.empty) {
+		return {
+			tokens: [],
+			line: line
+		};
+	}
+
+	console.log(part);
+	throw new Error(`Unknwn part`);
+}
+
+module.exports = travelAst;
