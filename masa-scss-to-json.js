@@ -67,7 +67,7 @@ function readFile(baseDir, file, variables) {
 				}
 
 				addVariable(
-					getVariable(line),
+					getVariable(line, variables),
 					variables
 				);
 
@@ -217,17 +217,9 @@ function getArrayVariable(lines, variables) {
 function getArrayValues(lines, variables) {
 	return splitLinesToArrayValues(lines)
 		.map(line => {
-			if (line.startsWith('$')) { // variable
-				const variable = line.substring(1);
-
-				if (!variables.hasOwnProperty(variable)) {
-					throw new Error(`Unknown variable ${variable}`);
-				}
-
-				return variables[variable];
-			}
-
-			return getVariableValue(line);
+			return getVariableValue(
+				replaceVariableValues(line, variables)
+			);
 		});
 }
 
@@ -238,7 +230,7 @@ function splitLinesToArrayValues(lines) {
 		.filter(line => line.length > 0);
 }
 
-function getVariable(line) {
+function getVariable(line, variables) {
 	if (!line.endsWith(';')) {
 		throw new Error(`Missing semicolon ${line}`);
 	}
@@ -269,7 +261,12 @@ function getVariable(line) {
 
 	return {
 		name: line.substring(1, idxColon).trim(),
-		value: getVariableValue(line.substring(idxColon + 1, endIdx).trim()),
+		value: getVariableValue(
+			replaceVariableValues(
+				line.substring(idxColon + 1, endIdx).trim(),
+				variables
+			)
+		),
 		default: isDefault
 	};
 }
@@ -292,6 +289,18 @@ function getVariableValue(value) {
 	}
 
 	return value;
+}
+
+function replaceVariableValues(value, variables) {
+	return value.replace(/\$[\w-]+/g, (grp) => {
+		const varName = grp.substring(1);
+
+		if (!variables.hasOwnProperty(varName)) {
+			throw new Error(`Unknown variable ${varName}`);
+		}
+
+		return variables[varName];
+	});
 }
 
 function mkdirpSync(dir) {
