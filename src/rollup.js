@@ -2,7 +2,7 @@ const path = require('path');
 
 const reader = require('./scss-reader');
 const parser = require('./scss-parser');
-const { resolveVariable, resolveProperty } = require('./variable');
+const { parseValue, collectValue } = require('./variable');
 
 function mergeFileToBlock(baseDir, parentFile, importFile, block) {
 	const result = parser(
@@ -55,19 +55,21 @@ function rollupVariables(parentScope, variables) {
 
 		const totalMap = Object.assign({}, parentScope, map);
 
+		let resolvedValue;
 		if (Array.isArray(variable.value)) {
-			variable.value = variable.value.map(val => resolveVariable(val, totalMap));
-		} else if (typeof variable.value === 'string') {
-			variable.value = resolveVariable(variable.value, totalMap);
+			resolvedValue = variable.value
+				.map(val => parseValue(val, totalMap));
+		} else {
+			resolvedValue = parseValue(variable.value, totalMap);
 		}
 
-		map[variable.name] = variable.value;
+		map[variable.name] = resolvedValue;
 	});
 
 	return map;
 }
 
-function finalizeBlock(parentScope, data) {
+function updateVariablesAndProperties(data, parentScope) {
 	const allRolledUpVariables = Object.assign(
 		{},
 		parentScope,
@@ -76,7 +78,7 @@ function finalizeBlock(parentScope, data) {
 
 	const result = {
 		variables: rollupVariables(parentScope, data.variables),
-		rules: data.rules.map(rule => finalizeBlock(allRolledUpVariables, rule))
+		rules: data.rules.map(rule => updateVariablesAndProperties(rule, allRolledUpVariables))
 	};
 
 	if (data.hasOwnProperty('selector')) {
@@ -85,11 +87,37 @@ function finalizeBlock(parentScope, data) {
 
 	if (data.hasOwnProperty('properties')) {
 		result.properties = data.properties.map(
-			property => Object.assign(property, { value: resolveProperty(property.value, allRolledUpVariables) })
-		)
+			property => Object.assign(
+				property,
+				{
+					value: collectValue(
+						parseValue(property.value, allRolledUpVariables).value
+					)
+				}
+			)
+		);
 	}
 
 	return result;
+}
+
+function finalizeVariables(data) {
+	const variables = {};
+	Object.keys(data.variables)
+		.forEach(key => {
+			const wrappedValue = data.variables[key];
+
+			if (Array.isArray(wrappedValue)) {
+				variables[key] = wrappedValue
+					.map(element => collectValue(element.value));
+			} else {
+				variables[key] = collectValue(wrappedValue.value);
+			}
+		});
+
+	data.variables = variables;
+
+	data.rules.forEach(rule => finalizeVariables(rule));
 }
 
 module.exports = (baseDir, file) => {
@@ -101,5 +129,8 @@ module.exports = (baseDir, file) => {
 
 	collapseImports(baseDir, startFile, result);
 
-	return finalizeBlock({}, result);
+	const updatedResult = updateVariablesAndProperties(result, {});
+	finalizeVariables(updatedResult);
+
+	return updatedResult;
 };

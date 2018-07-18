@@ -20,7 +20,7 @@ describe('functions', () => {
 		});
 	})
 
-	it('should deal array accessor function', () => {
+	it('should interpret array accessor function', () => {
 		const json = rollup('./specs/parse-scss/functions', 'array-function');
 
 		expect(json.rules[0].properties[0]).toEqual(jasmine.objectContaining({

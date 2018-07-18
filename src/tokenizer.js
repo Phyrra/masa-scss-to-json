@@ -136,7 +136,7 @@ function canMatchPart(part, line) {
 	if (part.token) {
 		const match = line.match(TokenDefinitions[part.token]);
 		if (match) {
-			//console.log('matched', part.token, match);
+			//console.log('matched', part.token, match[0]);
 
 			return {
 				tokens: [{
@@ -158,7 +158,7 @@ function canMatchPart(part, line) {
 	}
 
 	console.log(part);
-	throw new Error(`Unknwn part`);
+	throw new Error(`Unknown part`);
 }
 
 module.exports = travelAst;

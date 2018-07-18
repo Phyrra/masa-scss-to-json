@@ -31,7 +31,7 @@ const TokenDefinition = {
 	[Token.ARRAY_END]: new RegExp(/^\)/),
 	[Token.VARIABLE_DEFAULT]: new RegExp(/^!\s*default/),
 	[Token.STATEMENT_END]: new RegExp(/^;/),
-	[Token.RULE_START]: new RegExp(/^([^@$]([^#{;]|#{?)*)\{/),
+	[Token.RULE_START]: new RegExp(/^([^@${}()]([^#{;]|#{?)*)\{/),
 	[Token.BLOCK_END]: new RegExp(/^\}/),
 	[Token.PROPERTY_DECLARATION]: new RegExp(/^([\w-]+)\s*:/),
 	[Token.PROPERTY_VALUE]: new RegExp(/^([^!;\n]+)/),
@@ -166,6 +166,9 @@ ruleStatement = [
 		{
 			canRepeat: true,
 			statement: propertyStatement
+		},
+		{
+			empty: true
 		}
 	],
 	{
@@ -201,6 +204,9 @@ blockStatement = [
 		{
 			canRepeat: true,
 			statement: propertyStatement
+		},
+		{
+			empty: true
 		}
 	],
 	{
