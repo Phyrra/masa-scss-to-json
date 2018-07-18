@@ -7,135 +7,118 @@ const Token = {
 	TEXT: 'TEXT',
 	COLOR: 'COLOR',
 	NUMBER: 'NUMBER',
+	UNIT: 'UNIT',
+	VARIABLE: 'VARIABLE',
 	FUNCTION: 'FUNCTION',
 	ARGUMENT: 'ARGUMENT',
 	ARGUMENT_SEPARATOR: 'ARGUMENT_SEPARATOR',
 	FUNCTION_END: 'FUNCTION_END',
-	VARIABLE: 'VARIABLE',
 	CALCULATION: 'CALCULATION',
 	OPERATION: 'OPERATION'
 };
 
 const TokenDefinition = {
-	[Token.TEXT]: {
-		regExp: new RegExp(/^([a-zA-Z][\w-]*)(\s|$)/)
-	},
-	[Token.COLOR]: {
-		regExp: new RegExp(/^#([0-9a-fA-F]+)/)
-	},
-	[Token.NUMBER]: {
-		regExp: new RegExp(/^([+-]?(\d*\.\d+|\d+\.\d*)|[+-]?\d+)([a-zA-Z%]+)?/)
-	},
-	[Token.FUNCTION]: {
-		regExp: new RegExp(/^([\w-]+)\s*\(/)
-	},
-	[Token.ARGUMENT_SEPARATOR]: {
-		regExp: new RegExp(/^,/)
-	},
-	[Token.FUNCTION_END]: {
-		regExp: new RegExp(/^\)/)
-	},
-	[Token.VARIABLE]: {
-		regExp: new RegExp(/^\$([\w-]+)/)
-	}
+	[Token.TEXT]: new RegExp(/^([a-zA-Z_][\w-]*)/), // this will match function start foo( and catch it
+	[Token.COLOR]: new RegExp(/^#([0-9a-fA-F]+)/),
+	[Token.NUMBER]: new RegExp(/^([+-]?(\d*\.\d+|\d+\.\d*)|[+-]?\d+)/),
+	[Token.UNIT]: new RegExp(/^([a-zA-Z%]+)/),
+	[Token.FUNCTION]: new RegExp(/^([a-zA-Z_][\w-]*)\s*\(/),
+	[Token.ARGUMENT_SEPARATOR]: new RegExp(/^,/),
+	[Token.FUNCTION_END]: new RegExp(/^\)/),
+	[Token.VARIABLE]: new RegExp(/^\$([\w-]+)/)
 };
 
-const numberStatement = {
-	start: true,
-	token: Token.NUMBER
-};
-
-const textStatement = {
-	start: true,
-	token: Token.TEXT
-};
-
-const colorStatement = {
-	start: true,
-	token: Token.COLOR
-};
-
-const variableStatement = {
-	start: true,
-	token: Token.VARIABLE
-};
-
-let functionNext;
-
-const argumentNext = [
+const numberStatement = [
 	{
-		token: Token.ARGUMENT_SEPARATOR,
-		get next() {
-			return functionNext
+		token: Token.NUMBER
+	},
+	[
+		{
+			token: Token.UNIT
+		},
+		{
+			empty: true
 		}
-	}, {
+	]
+];
+
+const colorStatement = [
+	{
+		token: Token.COLOR
+	}
+];
+
+const textStatement = [
+	{
+		token: Token.TEXT
+	}
+];
+
+const variableStatement = [
+	{
+		token: Token.VARIABLE
+	}
+];
+
+const functionStatement = [
+	{
+		token: Token.FUNCTION
+	},
+	[
+		numberStatement,
+		colorStatement,
+		textStatement,
+		variableStatement
+	].map(statement => {
+		return {
+			canRepeat: true,
+			statement: [
+				{
+					statement: statement
+				},
+				[
+					{
+						token: Token.ARGUMENT_SEPARATOR
+					},
+					{
+						empty: true
+					}
+				]
+			]
+		};
+	}).concat([
+		{
+			canRepeat: true,
+			statement: [
+				{
+					get statement() { return functionStatement; }
+				},
+				[
+					{
+						token: Token.ARGUMENT_SEPARATOR
+					},
+					{
+						empty: true
+					}
+				]
+			]
+		},
+		{
+			empty: true
+		}
+	]),
+	{
 		token: Token.FUNCTION_END
 	}
 ];
 
-const valueTokens = [
-	Token.TEXT,
-	Token.COLOR,
-	Token.VARIABLE,
-	Token.NUMBER
+const valueStatement = [
+	functionStatement, // must be before textStatement because of overlap
+	numberStatement,
+	colorStatement,
+	variableStatement,
+	textStatement
 ];
-
-const fncArg = {
-	token: Token.FUNCTION,
-	get next() {
-		return [
-			{
-				token: Token.FUNCTION_END,
-				next: argumentNext
-			}
-		]
-		.concat(valueTokens.map(token => {
-			return {
-				token: token,
-				next: [
-					{
-						token: Token.FUNCTION_END,
-						next: argumentNext
-					}
-				]
-			}
-		}))
-		.concat([fncArg]);
-	}
-};
-
-functionNext =
-	valueTokens.map(token => {
-		return {
-			token: token,
-			next: argumentNext
-		}
-	})
-	.concat([fncArg]);
-
-const functionStatement = {
-	start: true,
-	token: Token.FUNCTION,
-	next: [
-		{
-			token: Token.FUNCTION_END
-		}
-	]
-		.concat(functionNext)
-};
-
-const valueStatement = {
-	start: true,
-	get next() {
-		return [
-			textStatement,
-			colorStatement,
-			variableStatement,
-			numberStatement,
-			functionStatement
-		];
-	}
-};
 
 const KNOWN_FUNCTIONS = {
 	'nth': (args, variables) => {

@@ -22,6 +22,11 @@ function travelAst(tokenDefinitions, root, lines) {
 		});
 
 		if (!found) {
+			console.log(
+				'FOUND_TOKENS',
+				tokens.map(token => token.token + ' [' + token.match.slice(1).join(', ') + ']')
+			);
+
 			throw new Error(`Could not match ${oneLine}`);
 		}
 	}
@@ -42,7 +47,7 @@ function canMatchStatement(statement, i, line, tokens) {
 	const part = statement[i];
 
 	if (Array.isArray(part)) {
-		const partials = part
+		let partials = part
 			.map(option => {
 				const match = canMatchPart(option, line);
 				if (match) {
@@ -55,6 +60,12 @@ function canMatchStatement(statement, i, line, tokens) {
 				return null;
 			})
 			.filter(match => !!match);
+
+		if (partials.length > 1) {
+			// If empty is an option, discard it if there is another match
+			partials = partials
+				.filter(partial => partial.match.tokens.length > 0);
+		}
 
 		const matches = partials
 			.map(partial => {
@@ -74,8 +85,15 @@ function canMatchStatement(statement, i, line, tokens) {
 		}
 
 		if (matches.length > 1) {
-			console.log(tokens.map(token => token.token + ' [' + token.match.slice(1).join(', ') + ']'));
-			matches.forEach(match => console.log(match.tokens.map(token => token.token + ' [' + token.match.slice(1).join(', ') + ']')));
+			console.log(
+				'FOUND_TOKENS',
+				tokens.map(token => token.token + ' [' + token.match.slice(1).join(', ') + ']')
+			);
+
+			matches.forEach(match => {
+				console.log((match.tokens || []).map(token => token.token + ' [' + token.match.slice(1).join(', ') + ']'))
+			});
+
 			throw new Error(`Multiple matches for ${line}`);
 		}
 
@@ -110,6 +128,7 @@ function canMatchStatement(statement, i, line, tokens) {
 }
 
 function canMatchPart(part, line) {
+	//console.log('checking', part, 'against', line);
 	if (part.statement) {
 		return canMatchStatement(part.statement, 0, line, []);
 	}
@@ -117,14 +136,14 @@ function canMatchPart(part, line) {
 	if (part.token) {
 		const match = line.match(TokenDefinitions[part.token]);
 		if (match) {
-			//console.log(part.token, match);
+			//console.log('matched', part.token, match);
 
 			return {
 				tokens: [{
 					token: part.token,
 					match: match
 				}],
-				line: line.replace(TokenDefinitions[part.token], '').trim() // TODO
+				line: line.replace(TokenDefinitions[part.token], '').trim()
 			};
 		}
 
