@@ -20,4 +20,15 @@ describe('comments', () => {
 	it('should find variable following block comment', () => {
 		expect(scssToJson('./specs/comments', 'block-comment-follow').var).toEqual(1);
 	});
+
+	it('should cut off block comment not starting the line', () => {
+		expect(scssToJson('./specs/comments', 'block-comment-following')).toEqual({
+			a: 1,
+			b: 2
+		});
+	});
+
+	it('should cut out multiple comments', () => {
+		expect(scssToJson('./specs/comments', 'multiple-block-comments').border).toEqual('1px solid black');
+	});
 });

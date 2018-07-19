@@ -126,19 +126,26 @@ function removeCommentsFromLines(lines) {
 
 					return line.substring(idxStop + 2);
 				} else {
-					const idxStart = line.indexOf('/*');
-					if (idxStart === -1) {
-						return line;
+					while (line.length > 0) {
+						multiLineCommentStarted = false;
+
+						const idxStart = line.indexOf('/*');
+						if (idxStart === -1) {
+							break;
+						}
+	
+						const idxStop = line.indexOf('*/', idxStart + 1);
+						if (idxStop === -1) {
+							multiLineCommentStarted = true;
+	
+							line = line.substring(0, idxStart);
+							break;
+						}
+
+						line = (line.substring(0, idxStart - 1) + line.substring(idxStop + 2)).trim();
 					}
-
-					const idxStop = line.indexOf('*/', idxStart + 1);
-					if (idxStop === -1) {
-						multiLineCommentStarted = true;
-
-						return '';
-					}
-
-					return line.substring(0, idxStart - 1) + line.substring(idxStop + 2);
+					
+					return line;
 				}
 			})
 	);
