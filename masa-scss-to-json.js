@@ -6,9 +6,11 @@ function readFile(baseDir, file, variables) {
 		file += '.scss';
 	}
 
-	const lines = removeCommentsFromLines(
-		getCleanedLines(
-			readLinesFromFile(file)
+	const lines = removeRulesFromLines(
+		removeCommentsFromLines(
+			getCleanedLines(
+				readLinesFromFile(file)
+			)
 		)
 	);
 
@@ -149,6 +151,68 @@ function removeCommentsFromLines(lines) {
 				}
 			})
 	);
+}
+
+function removeRulesFromLines(lines) {
+	let ruleStack = 0;
+
+	return getCleanedLines(
+		lines
+			.map(line => {
+				const matchStart = isRuleStart(line);
+				let matchEnd;
+
+				if (matchStart) {
+					++ruleStack;
+
+					matchEnd = isRuleEnd(
+						line.substring(matchStart[0].length + 1)
+					);
+
+					if (matchEnd) {
+						--ruleStack;
+
+						/*
+						* .selector { property: value; } ...
+						*/
+						if (ruleStack === 0) {
+							return line.substring(matchStart[0].length + 1 + matchEnd[0].length + 1).trim();
+						}
+					}
+
+					/*
+					 * ... .selector {
+					 */
+					return line.substring(0, matchStart.index);
+				}
+
+				matchEnd = isRuleEnd(line);
+				if (matchEnd) {
+					--ruleStack;
+
+					/*
+					 * } ...
+					 */
+					if (ruleStack === 0) {
+						return line.substring(matchEnd[0].length + 1).trim();
+					}
+				}
+
+				if (ruleStack > 0) {
+					return '';
+				}
+
+				return line;
+			})
+	);
+}
+
+function isRuleStart(line) {
+	return line.match(/^[^@${}()]([^#{;]|#{?)*\{/);
+}
+
+function isRuleEnd(line) {
+	return line.match(/\s*[^}]*\}/);
 }
 
 function isImport(line) {
