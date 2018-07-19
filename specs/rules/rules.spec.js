@@ -19,7 +19,7 @@ describe('rules', () => {
 		expect(scssToJson('./specs/rules', 'one-line-rule')).toEqual({
 			a: 1,
 			c: 3,
-			//d: 4,
+			d: 4,
 			f: 6
 		});
 	});

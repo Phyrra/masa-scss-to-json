@@ -6,10 +6,12 @@ function readFile(baseDir, file, variables) {
 		file += '.scss';
 	}
 
-	const lines = removeRulesFromLines(
-		removeCommentsFromLines(
-			getCleanedLines(
-				readLinesFromFile(file)
+	const lines = splitMultiDeclarations(
+		removeRulesFromLines(
+			removeCommentsFromLines(
+				getCleanedLines(
+					readLinesFromFile(file)
+				)
 			)
 		)
 	);
@@ -213,6 +215,14 @@ function isRuleStart(line) {
 
 function isRuleEnd(line) {
 	return line.match(/\s*[^}]*\}/);
+}
+
+function splitMultiDeclarations(lines) {
+	return getCleanedLines(
+		lines
+			.map(line => line.split(/([^;]+;)/))
+			.reduce((all, splits) => all.concat(splits), [])
+	);
 }
 
 function isImport(line) {

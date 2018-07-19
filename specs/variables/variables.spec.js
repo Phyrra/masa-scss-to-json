@@ -29,4 +29,11 @@ describe('variables', () => {
 			scssToJson('./specs/variables', 'unknown-variable');
 		}).toThrowError('Unknown variable b');
 	});
+
+	it('should get all declarations on one line', () => {
+		expect(scssToJson('./specs/variables', 'multiple-declarations')).toEqual({
+			a: 1,
+			b: 2
+		});
+	});
 });
