@@ -24,11 +24,14 @@ module.exports = {
 Supports SCSS syntax.
 
 Variables are declared as `$var: 1;`
-
-Comments are supported (but ignored).
+Multiple declarations on a single line are supported.
 
 Arrays are supported, they need to be declared as `$arr: (1, 2, 3)` (or split into multiple lines).
 Both trailing and leading comma syntax is supported.
+
+Comments are supported (but ignored).
+
+CSS-rules are supported (but ignored). Nested variables won't be included in the final result.
 
 Variables containing other variables in their value, such as `$border: $border-size solid $border-color;` will be substituted.
 
