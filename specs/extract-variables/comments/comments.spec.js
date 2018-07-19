@@ -20,4 +20,29 @@ describe('comments', () => {
 	it('should find variable following block comment', () => {
 		expect(scssToJson('./specs/extract-variables/comments', 'block-comment-follow').var).toEqual(1);
 	});
+
+	it('should cut off block comment not starting the line', () => {
+		expect(scssToJson('./specs/extract-variables/comments', 'block-comment-following')).toEqual({
+			a: 1,
+			b: 2
+		});
+	});
+
+	it('should cut out multiple comments', () => {
+		expect(scssToJson('./specs/extract-variables/comments', 'multiple-block-comments').border).toEqual('1px solid black');
+	});
+
+	it('should cut out comment after block comment', () => {
+		expect(scssToJson('./specs/extract-variables/comments', 'ending-comment-with-new-comment')).toEqual({
+			a: 1,
+			b: 2,
+			c: 3
+		});
+	});
+
+	it('should ignore one-line comments in a block comment', () => {
+		expect(scssToJson('./specs/extract-variables/comments', 'line-comment-in-block-comment')).toEqual({
+			var: 1
+		});
+	});
 });
