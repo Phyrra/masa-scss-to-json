@@ -31,4 +31,18 @@ describe('comments', () => {
 	it('should cut out multiple comments', () => {
 		expect(scssToJson('./specs/comments', 'multiple-block-comments').border).toEqual('1px solid black');
 	});
+
+	it('should cut out comment after block comment', () => {
+		expect(scssToJson('./specs/comments', 'ending-comment-with-new-comment')).toEqual({
+			a: 1,
+			b: 2,
+			c: 3
+		});
+	});
+
+	it('should ignore one-line comments in a block comment', () => {
+		expect(scssToJson('./specs/comments', 'line-comment-in-block-comment')).toEqual({
+			var: 1
+		});
+	});
 });

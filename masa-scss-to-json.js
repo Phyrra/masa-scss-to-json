@@ -111,46 +111,59 @@ function removeCommentsFromLines(lines) {
 	return getCleanedLines(
 		lines
 			.map(line => {
-				const idx = line.indexOf('//');
+				while (line.length > 0) {
+					if (multiLineCommentStarted) {
+						const idxStop = line.indexOf('*/');
+						if (idxStop === -1) {
+							/*
+							 * ... Middle ...
+							 */
+							return '';
+						}
 
-				if (idx !== -1) {
-					return line.substring(0, idx - 1);
-				}
-
-				return line;
-			})
-			.map(line => {
-				if (multiLineCommentStarted) {
-					const idxStop = line.indexOf('*/');
-					if (idxStop === -1) {
-						return '';
-					}
-
-					multiLineCommentStarted = false;
-
-					return line.substring(idxStop + 2);
-				} else {
-					while (line.length > 0) {
 						multiLineCommentStarted = false;
 
+						/*
+						 * Block end ...
+						 */
+						line = line.substring(idxStop + 2).trim();
+					} else {
 						const idxStart = line.indexOf('/*');
 						if (idxStart === -1) {
+							const lineIdx = line.indexOf('//');
+							if (lineIdx === -1) {
+								/*
+								 * No comment
+								 */
+								break;
+							}
+							
+							/*
+							 * ... // comment
+							 */
+							line = line.substring(0, lineIdx).trim();
 							break;
 						}
-	
+
 						const idxStop = line.indexOf('*/', idxStart + 1);
 						if (idxStop === -1) {
 							multiLineCommentStarted = true;
 	
+							/*
+							 * ... /*
+							 */
 							line = line.substring(0, idxStart);
 							break;
 						}
 
+						/*
+						 * Comment start ... Comment end ...
+						 */
 						line = (line.substring(0, idxStart - 1) + line.substring(idxStop + 2)).trim();
 					}
-					
-					return line;
 				}
+
+				return line;
 			})
 	);
 }
