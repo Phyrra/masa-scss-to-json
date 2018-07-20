@@ -37,6 +37,12 @@ describe('arrays', () => {
 		}).toThrowError(/^Unknown variable/);
 	});
 
+	it('should throw an error when mixing plain values into a map', () => {
+		expect(() => {
+			scssToJson('./specs/arrays', 'array-map-mix');
+		}).toThrowError('Cannot mix array and map values for err');
+	});
+
 	describe('different formats', () => {
 		let json;
 

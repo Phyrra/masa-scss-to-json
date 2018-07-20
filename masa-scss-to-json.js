@@ -26,9 +26,9 @@ function readFile(baseDir, file, variables) {
 			if (arrayBufferFilling) {
 				arrayBuffer.push(line);
 
-				if (isArrayEnding(lowerLine)) {
+				if (isObjectEnding(lowerLine)) {
 					addVariable(
-						getArrayVariable(arrayBuffer, variables),
+						getObjectVariable(arrayBuffer, variables),
 						variables
 					);
 
@@ -54,10 +54,10 @@ function readFile(baseDir, file, variables) {
 			}
 
 			if (isVariableDefinition(lowerLine)) {
-				if (isArrayStart(line)) {
-					if (isArrayEnding(line)) {
+				if (isObjectStart(line)) {
+					if (isObjectEnding(line)) {
 						addVariable(
-							getArrayVariable([line], variables),
+							getObjectVariable([line], variables),
 							variables
 						);
 
@@ -137,7 +137,7 @@ function removeCommentsFromLines(lines) {
 								 */
 								break;
 							}
-							
+
 							/*
 							 * ... // comment
 							 */
@@ -148,7 +148,7 @@ function removeCommentsFromLines(lines) {
 						const idxStop = line.indexOf('*/', idxStart + 1);
 						if (idxStop === -1) {
 							multiLineCommentStarted = true;
-	
+
 							/*
 							 * ... /*
 							 */
@@ -273,7 +273,7 @@ function isVariableDefinition(line) {
 	return line.startsWith('$');
 }
 
-function isArrayStart(line) {
+function isObjectStart(line) {
 	return line.match(/^\$(\w|-)+:\s*\(/);
 }
 
@@ -281,7 +281,7 @@ function cleanArrayStart(line) {
 	return line.replace(/^\$(\w|-)+:\s*\(/, '');
 }
 
-function isArrayEnding(line) {
+function isObjectEnding(line) {
 	return line.match(/\)\s*(!default)?\s*;$/);
 }
 
@@ -289,7 +289,7 @@ function cleanArrayEnding(line) {
 	return line.replace(/\)\s*(!default)?\s*;$/, '');
 }
 
-function getArrayVariable(lines, variables) {
+function getObjectVariable(lines, variables) {
 	const firstLine = lines[0];
 	const lastLine = lines[lines.length - 1];
 
@@ -303,25 +303,77 @@ function getArrayVariable(lines, variables) {
 
 	return {
 		name: name,
-		value: getArrayValues(lines, variables),
+		value: getObjectValues(name, lines, variables),
 		default: isDefault
 	};
 }
 
-function getArrayValues(lines, variables) {
-	return splitLinesToArrayValues(lines)
-		.map(line => {
-			return getVariableValue(
-				replaceVariableValues(line, variables)
-			);
+function getObjectValues(name, lines, variables) {
+	const values = splitObjectValueLines(lines)
+		.map(line => getObjectVariableValue(line, variables));
+
+	if (values.length === 0) {
+		return values;
+	}
+
+	const isFirstAMapValue = typeof values[0] === 'object';
+
+	/*
+	 * Map
+	 */
+
+	if (isFirstAMapValue) {
+		if (!values.every(value => typeof value === 'object')) {
+			throw new Error(`Cannot mix array and map values for ${name}`);
+		}
+
+		const map = {};
+		values.forEach(elem => {
+			if (map.hasOwnProperty(elem.name)) {
+				throw new Error(`Duplicate property ${elem.name} in ${name}`);
+			}
+
+			map[elem.name] = elem.value;
 		});
+
+		return map;
+	}
+
+	/*
+	 * Value
+	 */
+
+	if (values.some(value => typeof value === 'object')) {
+		throw new Error(`Cannot mix array and map values for ${name}`);
+	}
+
+	return values;
 }
 
-function splitLinesToArrayValues(lines) {
+function splitObjectValueLines(lines) {
 	return lines
 		.reduce((values, line) => values.concat(line.split(',')), [])
 		.map(line => line.trim())
 		.filter(line => line.length > 0);
+}
+
+function getObjectVariableValue(value, variables) {
+	const colonIdx = value.indexOf(':');
+	if (colonIdx === -1) {
+		return getVariableValue(
+			replaceVariableValues(value, variables)
+		);
+	}
+
+	return {
+		name: value.substring(0, colonIdx).trim(),
+		value: getVariableValue(
+			replaceVariableValues(
+				value.substring(colonIdx + 1).trim(),
+				variables
+			)
+		)
+	};
 }
 
 function getVariable(line, variables) {
@@ -445,6 +497,10 @@ function getJsonValueString(value) {
 
 	if (Array.isArray(value)) {
 		return '[\r\n' + value.map(val => '\t\t' + getJsonValueString(val)).join(',\r\n') + '\r\n\t]';
+	}
+
+	if (typeof value === 'object') {
+		return '{\r\n' + Object.keys(value).map(key => `\t\t"${key}": ` + getJsonValueString(value[key])).join(',\r\n') + '\r\n\t}';
 	}
 
 	return `"${value.replace(/"/g, '\\"')}"`;
