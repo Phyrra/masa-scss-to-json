@@ -1,4 +1,5 @@
 const tokenize = require('./tokenizer');
+const { Types } = require('./variable');
 
 // TODO: @media rules
 
@@ -6,10 +7,12 @@ const Token = {
 	IMPORT_DECLARATION: 'IMPORT_DECLARATION',
 	VARIABLE_DECLARATION: 'VARIABLE_DECLARATION',
 	VARIABLE_PLAIN_VALUE: 'VARIABLE_PLAIN_VALUE',
-	VARIABLE_ARRAY_VALUE: 'VARIABLE_ARRAY_VALUE',
+	VARIABLE_OBJECT_VALUE: 'VARIABLE_OBJECT_VALUE',
 	ARRAY_VALUE: 'ARRAY_VALUE',
-	ARRAY_SEPARATOR: 'ARRAY_SEPARATOR',
-	ARRAY_END: 'ARRAY_END',
+	MAP_ENTRY_DECLARATION: 'MAP_VALUE',
+	MAP_ENTRY_VALUE: 'MAP_ENTRY_VALUE',
+	OBJECT_VALUE_SEPARATOR: 'OBJECT_VALUE_SEPARATOR',
+	OBJECT_END: 'OBJECT_END',
 	VARIABLE_DEFAULT: 'VARIABLE_DEFAULT',
 	STATEMENT_END: 'STATEMENT_END',
 	RULE_START: 'RULE_START',
@@ -25,10 +28,12 @@ const TokenDefinition = {
 	[Token.IMPORT_DECLARATION]: new RegExp(/^@import\s+["']([^"']+)["']\s*;/),
 	[Token.VARIABLE_DECLARATION]: new RegExp(/^\$([^:\s]+)\s*:/),
 	[Token.VARIABLE_PLAIN_VALUE]: new RegExp(/^([^(][^!;\n]*)/),
-	[Token.VARIABLE_ARRAY_VALUE]: new RegExp(/^\(/),
-	[Token.ARRAY_VALUE]: new RegExp(/^([^,)]+)/),
-	[Token.ARRAY_SEPARATOR]: new RegExp(/^,/),
-	[Token.ARRAY_END]: new RegExp(/^\)/),
+	[Token.VARIABLE_OBJECT_VALUE]: new RegExp(/^\(/),
+	[Token.ARRAY_VALUE]: new RegExp(/^([^,):]+)/),
+	[Token.MAP_ENTRY_DECLARATION]: new RegExp(/^([\w-]+)\s*:/),
+	[Token.MAP_ENTRY_VALUE]: new RegExp(/^([^,)]+)/),
+	[Token.OBJECT_VALUE_SEPARATOR]: new RegExp(/^,/),
+	[Token.OBJECT_END]: new RegExp(/^\)/),
 	[Token.VARIABLE_DEFAULT]: new RegExp(/^!\s*default/),
 	[Token.STATEMENT_END]: new RegExp(/^;/),
 	[Token.RULE_START]: new RegExp(/^([^@${}()]([^#{;]|#{?)*)\{/),
@@ -52,31 +57,74 @@ const plainVariableStatement = [
 	}
 ];
 
-const arrayVariableStatement = [
+const mapEntryStatement = [
 	{
-		token: Token.VARIABLE_ARRAY_VALUE
+		token: Token.MAP_ENTRY_DECLARATION
+	},
+	{
+		token: Token.MAP_ENTRY_VALUE
+	}
+];
+
+const objectVariableStatement = [
+	{
+		token: Token.VARIABLE_OBJECT_VALUE
 	},
 	[
+		{
+			statement: [
+				[
+					{
+						statement: [
+							{
+								canRepeat: true,
+								statement: [
+									{
+										token: Token.ARRAY_VALUE
+									},
+									{
+										token: Token.OBJECT_VALUE_SEPARATOR
+									}
+								]
+							},
+							{
+								token: Token.ARRAY_VALUE
+							}
+						]
+					},
+					{
+						statement: [
+							{
+								canRepeat: true,
+								statement: [
+									{
+										statement: mapEntryStatement
+									},
+									{
+										token: Token.OBJECT_VALUE_SEPARATOR
+									}
+								]
+							},
+							{
+								statement: mapEntryStatement
+							}
+						]
+					}
+				]
+			]
+		},
 		{
 			token: Token.ARRAY_VALUE
 		},
 		{
-			canRepeat: true,
-			statement: [
-				{
-					token: Token.ARRAY_VALUE
-				},
-				{
-					token: Token.ARRAY_SEPARATOR
-				}
-			]
+			statement: mapEntryStatement
 		},
 		{
 			empty: true
 		}
 	],
 	{
-		token: Token.ARRAY_END
+		token: Token.OBJECT_END
 	}
 ];
 
@@ -89,7 +137,7 @@ const variableStatement = [
 			statement: plainVariableStatement
 		},
 		{
-			statement: arrayVariableStatement
+			statement: objectVariableStatement
 		}
 	],
 	[
@@ -236,6 +284,7 @@ function parseScss(lines) {
 		blocks: []
 	};
 
+	let prevToken = null;
 	const stack = [_root];
 
 	tokens.forEach(token => {
@@ -250,32 +299,73 @@ function parseScss(lines) {
 			case Token.VARIABLE_DECLARATION:
 				peek.variables.push({
 					name: token.match[1].trim(),
-					value: undefined,
+					type: null,
+					value: null,
 					default: false
 				});
 
 				break;
 
 			case Token.VARIABLE_PLAIN_VALUE:
-				peek.variables[peek.variables.length - 1].value = getVariableValue(token.match[1].trim())
+				const plainWrapper = peek.variables[peek.variables.length - 1];
+				plainWrapper.type = Types.VALUE;
+
+				plainWrapper.value = getVariableValue(token.match[1].trim());
 
 				break;
 
-			case Token.VARIABLE_ARRAY_VALUE:
-				peek.variables[peek.variables.length - 1].value = [];
+			case Token.VARIABLE_OBJECT_VALUE:
+				// ignore
 
 				break;
 
 			case Token.ARRAY_VALUE:
-				peek.variables[peek.variables.length - 1].value.push(
+				const arrayWrapper = peek.variables[peek.variables.length - 1];
+				arrayWrapper.type = Types.ARRAY;
+
+				if (arrayWrapper.value == null) {
+					arrayWrapper.value = [];
+				}
+
+				arrayWrapper.value.push(
 					getVariableValue(token.match[0].trim())
 				);
 
 				break;
 
-			case Token.ARRAY_SEPARATOR:
-			case Token.ARRAY_END:
+			case Token.MAP_ENTRY_DECLARATION:
+				const objectWrapper = peek.variables[peek.variables.length - 1];
+				objectWrapper.type = Types.MAP;
+
+				if (objectWrapper.value == null) {
+					objectWrapper.value = {};
+				}
+
+				const objectPropertyName = token.match[1].trim();
+				if (objectWrapper.value.hasOwnProperty(objectPropertyName)) {
+					throw new Error(`Duplicate property ${objectPropertyName} in ${peek.variables[peek.variables.length - 1].name}`);
+				}
+
+				objectWrapper.value[objectPropertyName] = null;
+
+				break;
+
+			case Token.MAP_ENTRY_VALUE:
+				peek.variables[peek.variables.length - 1].value[prevToken.match[1].trim()] = token.match[0].trim();
+
+				break;
+
+			case Token.OBJECT_VALUE_SEPARATOR:
 				// ignore
+
+				break;
+
+			case Token.OBJECT_END:
+				const objectEndWrapper = peek.variables[peek.variables.length - 1];
+				if (objectEndWrapper.type == null) {
+					objectEndWrapper.type = Types.ARRAY;
+					objectEndWrapper.value = [];
+				}
 
 				break;
 
@@ -350,6 +440,8 @@ function parseScss(lines) {
 			default:
 				throw new Error(`Unknown token ${token.token}`);
 		}
+
+		prevToken = token;
 	});
 
 	return _root;

@@ -2,7 +2,7 @@ const path = require('path');
 
 const reader = require('./scss-reader');
 const parser = require('./scss-parser');
-const { parseValue, collectValue } = require('./variable');
+const { parseValue, collectValue, Types } = require('./variable');
 
 function mergeFileToBlock(baseDir, parentFile, importFile, block) {
 	const result = parser(
@@ -55,12 +55,40 @@ function rollupVariables(parentScope, variables) {
 
 		const totalMap = Object.assign({}, parentScope, map);
 
-		let resolvedValue;
-		if (Array.isArray(variable.value)) {
-			resolvedValue = variable.value
-				.map(val => parseValue(val, totalMap));
+		let resolvedValue = {
+			type: null,
+			value: null
+		};
+
+		if (variable.type === Types.ARRAY) {
+			resolvedValue.type = Types.ARRAY;
+
+			resolvedValue.value = variable.value
+				.map(val => {
+					return {
+						type: Types.VALUE,
+						value: parseValue(val, totalMap)
+					}
+				});
+		} else if (variable.type === Types.MAP) {
+			resolvedValue.type = Types.MAP;
+
+			resolvedValue.value = {};
+			Object.keys(variable.value)
+				.forEach(key => {
+					if (resolvedValue.value.hasOwnProperty(key)) {
+						throw new Error(`Duplicate property ${key} in ${variable.name}`);
+					}
+
+					resolvedValue.value[key] = {
+						type: Types.VALUE,
+						value: parseValue(variable.value[key], totalMap)
+					};
+				});
 		} else {
-			resolvedValue = parseValue(variable.value, totalMap);
+			resolvedValue.type = Types.VALUE;
+
+			resolvedValue.value = parseValue(variable.value, totalMap);
 		}
 
 		map[variable.name] = resolvedValue;
@@ -91,7 +119,7 @@ function updateVariablesAndProperties(data, parentScope) {
 				property,
 				{
 					value: collectValue(
-						parseValue(property.value, allRolledUpVariables).value
+						parseValue(property.value, allRolledUpVariables)
 					)
 				}
 			)
@@ -107,9 +135,13 @@ function finalizeVariables(data) {
 		.forEach(key => {
 			const wrappedValue = data.variables[key];
 
-			if (Array.isArray(wrappedValue)) {
-				variables[key] = wrappedValue
+			if (wrappedValue.type === Types.ARRAY) {
+				variables[key] = wrappedValue.value
 					.map(element => collectValue(element.value));
+			} else if (wrappedValue.type === Types.MAP) {
+				variables[key] = {};
+				Object.keys(wrappedValue.value)
+					.forEach(propertyKey => variables[key][propertyKey] = collectValue(wrappedValue.value[propertyKey].value));
 			} else {
 				variables[key] = collectValue(wrappedValue.value);
 			}

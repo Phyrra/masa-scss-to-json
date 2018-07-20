@@ -20,11 +20,15 @@ describe('functions', () => {
 		});
 	})
 
-	it('should interpret array accessor function', () => {
+	it('should resolve array accessor function', () => {
 		const json = rollup('./specs/parse-scss/functions', 'array-function');
 
 		expect(json.rules[0].properties[0]).toEqual(jasmine.objectContaining({
 			value: 'red'
+		}));
+
+		expect(json.rules[0].properties[1]).toEqual(jasmine.objectContaining({
+			value: 'green'
 		}));
 	});
 });

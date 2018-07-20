@@ -4,6 +4,9 @@ $arr: (
 	blue
 );
 
+$i: 2;
+
 .some-selector {
 	color: nth($arr, 1);
+	background-color: nth($arr, $i);
 }

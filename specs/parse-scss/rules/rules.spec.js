@@ -26,4 +26,18 @@ describe('rules', () => {
 		expect(json.rules[0].rules).toEqual(jasmine.any(Array));
 		expect(json.rules[0].rules.length).toBe(1);
 	});
+
+	it('should nest multiple rules', () => {
+		const json = rollup('./specs/parse-scss/rules', 'multiple-nested-rules');
+
+		expect(json.rules[0].rules).toEqual(jasmine.any(Array));
+		expect(json.rules[0].rules.length).toBe(2);
+	});
+
+	it('should map empty rules', () => {
+		const json = rollup('./specs/parse-scss/rules', 'empty-rules');
+
+		expect(json.rules).toEqual(jasmine.any(Array));
+		expect(json.rules.length).toBe(2);
+	});
 });

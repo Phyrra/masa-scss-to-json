@@ -1,8 +1,21 @@
 const scssToJson = require('../../../masa-scss-to-json');
 
 describe('arrays', () => {
-	it('should read a well formatted array', () => {
-		expect(scssToJson('./specs/extract-variables/arrays', 'multi-line-array').arr).toEqual([
+	it('should match an empty object to array', () => {
+		expect(scssToJson('./specs/extract-variables/arrays', 'empty-arrays')).toEqual({
+			a: [],
+			b: []
+		});
+	});
+
+	it('should read a single element array', () => {
+		expect(scssToJson('./specs/extract-variables/arrays', 'one-element-array').arr).toEqual([
+			1
+		]);
+	});
+
+	it('should read a multi element array', () => {
+		expect(scssToJson('./specs/extract-variables/arrays', 'multi-element-array').arr).toEqual([
 			1, 2, 3
 		]);
 	});
@@ -35,6 +48,12 @@ describe('arrays', () => {
 		expect(() => {
 			scssToJson('./specs/extract-variables/arrays', 'array-with-unknown-variable');
 		}).toThrowError(/^Unknown variable/);
+	});
+
+	it('should throw an error when mixing plain values into a map', () => {
+		expect(() => {
+			scssToJson('./specs/extract-variables/arrays', 'array-map-mix');
+		}).toThrowError(/^Could not match/);
 	});
 
 	describe('different formats', () => {

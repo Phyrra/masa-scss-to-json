@@ -1,5 +1,11 @@
 const tokenize = require('./tokenizer');
 
+const Types = {
+	ARRAY: 'ARRAY',
+	MAP: 'MAP',
+	VALUE: 'VALUE'
+};
+
 // TODO: Treat #{..}
 // TODO: Treat calculations
 
@@ -123,12 +129,29 @@ const KNOWN_FUNCTIONS = {
 			throw new Error(`Expected 2 arguments, got ${args.length}`);
 		}
 
-		const arr = args[0];
-		if (!Array.isArray(arr)) {
-			throw new Error(`Expected array, got ${typeof arr}`);
+		const arrWrapper = args[0];
+		if (arrWrapper.type !== Token.VARIABLE) {
+			throw new Error(`Expected a variable as 1st argument, got ${arrWrapper.type}`);
 		}
 
-		let idx = checkIfNumeric(args[1].value.toString());
+		const arrValue = arrWrapper.part;
+		if (arrValue.type !== Types.ARRAY) {
+			throw new Error(`Expected an array as 1st argument, got ${arrValue.type}`);
+		}
+
+		const arr = arrValue.value;
+
+		const idxWrapper = args[1];
+		let idxValue;
+		if (idxWrapper.type === Token.NUMBER) {
+			idxValue = idxWrapper.part;
+		} else if (idxWrapper.type === Token.VARIABLE) {
+			idxValue = collectValueParts(idxWrapper.part.value);
+		} else {
+			throw new Error(`Expected a number as 2nd argument, got ${idxWrapper.type}`)
+		}
+
+		let idx = checkIfNumeric(idxValue);
 		if (typeof idx !== 'number') {
 			throw new Error(`Expected int, got ${idx}`);
 		}
@@ -140,12 +163,16 @@ const KNOWN_FUNCTIONS = {
 
 		return {
 			type: Token.VARIABLE,
-			value: arr[intIdx].value
+			part: arr[intIdx]
 		};
 	}
 }
 
 function checkIfNumeric(value) {
+	if (typeof value === 'number') {
+		return value;
+	}
+
 	if (value.match(/^[+-]?\d+$/)) {
 		return parseInt(value, 10);
 	}
@@ -158,7 +185,7 @@ function checkIfNumeric(value) {
 }
 
 function getVariable(variables, name) {
-	if (!variables.hasOwnProperty((name))) {
+	if (!variables.hasOwnProperty(name)) {
 		throw new Error(`Unknown variable ${name}`);
 	}
 
@@ -168,16 +195,16 @@ function getVariable(variables, name) {
 function valueToString(value) {
 	switch (value.type) {
 		case Token.VARIABLE:
-			return collectValueParts(value.value);
+			return collectValueParts(value.part.value);
 
 		case Token.TEXT:
-			return value.value;
+			return value.part;
 
 		case Token.NUMBER:
-			return value.value + (value.unit ? value.unit : '');
+			return value.part + (value.unit ? value.unit : '');
 
 		case Token.COLOR:
-			return '#' + value.value;
+			return '#' + value.part;
 
 		default:
 			throw new Error(`Unknown type ${value.type}`);
@@ -205,12 +232,12 @@ function parseValue(value, variables) {
 
 	tokens.forEach(token => {
 		let peek = stack[stack.length - 1];
-		
+
 		switch (token.token) {
 			case Token.TEXT:
 				peek.push({
 					type: Token.TEXT,
-					value: token.match[1].trim()
+					part: token.match[1].trim()
 				});
 
 				break;
@@ -218,7 +245,7 @@ function parseValue(value, variables) {
 			case Token.COLOR:
 				peek.push({
 					type: Token.COLOR,
-					value: token.match[1].trim()
+					part: token.match[1].trim()
 				});
 
 				break;
@@ -226,7 +253,7 @@ function parseValue(value, variables) {
 			case Token.NUMBER:
 				peek.push({
 					type: Token.NUMBER,
-					value: token.match[1].trim(),
+					part: token.match[1].trim(),
 					unit: undefined
 				});
 
@@ -238,23 +265,17 @@ function parseValue(value, variables) {
 				break;
 
 			case Token.VARIABLE:
-				const variableValue = getVariable(variables, token.match[1].trim());
-
-				if (Array.isArray(variableValue)) {
-					peek.push(variableValue);
-				} else {
-					peek.push({
-						type: Token.VARIABLE,
-						value: variableValue.value
-					});
-				}
+				peek.push({
+					type: Token.VARIABLE,
+					part: getVariable(variables, token.match[1].trim())
+				});
 
 				break;
 
 			case Token.FUNCTION:
 				stack.push([{
 					type: Token.FUNCTION,
-					value: token.match[1].trim()
+					part: token.match[1].trim()
 				}]);
 
 				break;
@@ -265,18 +286,18 @@ function parseValue(value, variables) {
 				break;
 
 			case Token.FUNCTION_END:
-				const functionName = peek[0].value;
+				const functionName = peek[0].part;
 				const functionArguments = peek.slice(1);
 
 				stack.pop();
 				peek = stack[stack.length - 1];
-				
+
 				if (KNOWN_FUNCTIONS.hasOwnProperty(functionName)) {
 					peek.push(KNOWN_FUNCTIONS[functionName](functionArguments));
 				} else {
 					peek.push({
 						type: Token.TEXT,
-						value: functionName + '(' + functionArguments.map(val => valueToString(val)).join(', ') + ')'
+						part: functionName + '(' + functionArguments.map(val => valueToString(val)).join(', ') + ')'
 					});
 				}
 
@@ -287,12 +308,11 @@ function parseValue(value, variables) {
 		}
 	});
 
-	return {
-		value: stack[stack.length - 1]
-	};
+	return stack[stack.length - 1];
 }
 
 module.exports = {
 	parseValue: parseValue,
-	collectValue: collectValueParts
+	collectValue: collectValueParts,
+	Types: Types
 };
