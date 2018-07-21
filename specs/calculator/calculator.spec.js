@@ -21,10 +21,12 @@ describe('calculator', () => {
 		describe('pemdas', () => {
 			it('should prioritize multiplication', () => {
 				expect(calculator('1 + 2 * 3')).toEqual('7');
+				expect(calculator('3 * 2 + 1')).toEqual('7');
 			});
 
 			it('should prioritize division', () => {
 				expect(calculator('1 - 6 / 3')).toEqual('-1');
+				expect(calculator('6 / 3 - 1')).toEqual('1');
 			});
 
 			it('should resolve brackets', () => {

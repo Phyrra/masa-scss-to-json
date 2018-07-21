@@ -223,7 +223,7 @@ function shuntingYard(tokens/*: IToken[]*/)/*: IToken[]*/ {
 
 				const op/*: IToken*/ = operators[operators.length - 1];
 
-				return operators[op.value];
+				return Operator[op.value];
 			}
 
 			const currentOp/*: IOperator*/ = Operator[token.value];
