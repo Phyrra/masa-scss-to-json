@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const calculator = require('./src/calculator');
+
 function readFile(baseDir, file, variables) {
 	if (!file.endsWith('.scss')) {
 		file += '.scss';
@@ -223,7 +225,7 @@ function removeRulesFromLines(lines) {
 }
 
 function isRuleStart(line) {
-	return line.match(/^[^@${}()]([^#{;]|#{?)*\{/);
+	return line.match(/^[^@${}()#]([^#{]|(#{)?)*\{/);
 }
 
 function isRuleEnd(line) {
@@ -438,15 +440,19 @@ function getVariableValue(value) {
 }
 
 function replaceVariableValues(value, variables) {
-	return value.replace(/\$[\w-]+/g, (grp) => {
-		const varName = grp.substring(1);
+	return value
+		.replace(/\$[\w-]+/g, (grp) => {
+			const varName = grp.substring(1);
 
-		if (!variables.hasOwnProperty(varName)) {
-			throw new Error(`Unknown variable ${varName}`);
-		}
+			if (!variables.hasOwnProperty(varName)) {
+				throw new Error(`Unknown variable ${varName}`);
+			}
 
-		return variables[varName];
-	});
+			return variables[varName];
+		})
+		.replace(/#\{[^}]+\}/g, (grp) => {
+			return calculator(grp.substring(2, grp.length - 1));
+		});
 }
 
 function mkdirpSync(dir) {
