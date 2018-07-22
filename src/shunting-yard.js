@@ -25,7 +25,6 @@ interface IToken {
 }
 */
 const Token = {
-	VARIABLE: 'VARIABLE',
 	NUMBER: 'NUMBER',
 	OPERATOR: 'OPERATOR',
 	BRACKET_OPEN: 'BRACKET_OPEN',
@@ -54,7 +53,8 @@ const Operator/*: (key: string) => IOperator*/ = {
 
 			return {
 				type: Token.NUMBER,
-				value: Math.pow(left.part, right.part)
+				value: Math.pow(left.part, right.part),
+				unit: undefined
 			};
 		}
 	},
