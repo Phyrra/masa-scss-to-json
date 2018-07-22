@@ -1,27 +1,13 @@
-const fs = require('fs');
 const path = require('path');
 
+const reader = require('./src/scss-reader');
 const calculator = require('./src/calculator');
 
-function readFile(baseDir, file, variables) {
-	if (!file.endsWith('.scss')) {
-		file += '.scss';
-	}
-
-	const lines = splitMultiDeclarations(
-		removeRulesFromLines(
-			removeCommentsFromLines(
-				getCleanedLines(
-					readLinesFromFile(file)
-				)
-			)
-		)
-	);
-
+function processFile(baseDir, file, variables) {
 	let arrayBuffer = [];
 	let arrayBufferFilling = false;
 
-	lines
+	reader(file)
 		.forEach(line => {
 			const lowerLine = line.toLowerCase();
 
@@ -46,7 +32,7 @@ function readFile(baseDir, file, variables) {
 			if (isImport(lowerLine)) {
 				const importFile = getImportFile(line);
 
-				readFile(
+				processFile(
 					baseDir,
 					getImportPath(baseDir, file, importFile),
 					variables
@@ -94,150 +80,6 @@ function addVariable(variable, variables) {
 	} else {
 		variables[variable.name] = variable.value;
 	}
-}
-
-function readLinesFromFile(file) {
-	return fs.readFileSync(file, 'utf8')
-		.split(/\n/);
-}
-
-function getCleanedLines(lines) {
-	return lines
-		.map(line => line.trim())
-		.filter(line => line.length > 0);
-}
-
-function removeCommentsFromLines(lines) {
-	let multiLineCommentStarted = false;
-
-	return getCleanedLines(
-		lines
-			.map(line => {
-				while (line.length > 0) {
-					if (multiLineCommentStarted) {
-						const idxStop = line.indexOf('*/');
-						if (idxStop === -1) {
-							/*
-							 * ... Middle ...
-							 */
-							return '';
-						}
-
-						multiLineCommentStarted = false;
-
-						/*
-						 * Block end ...
-						 */
-						line = line.substring(idxStop + 2).trim();
-					} else {
-						const idxStart = line.indexOf('/*');
-						if (idxStart === -1) {
-							const lineIdx = line.indexOf('//');
-							if (lineIdx === -1) {
-								/*
-								 * No comment
-								 */
-								break;
-							}
-
-							/*
-							 * ... // comment
-							 */
-							line = line.substring(0, lineIdx).trim();
-							break;
-						}
-
-						const idxStop = line.indexOf('*/', idxStart + 1);
-						if (idxStop === -1) {
-							multiLineCommentStarted = true;
-
-							/*
-							 * ... /*
-							 */
-							line = line.substring(0, idxStart);
-							break;
-						}
-
-						/*
-						 * Comment start ... Comment end ...
-						 */
-						line = (line.substring(0, idxStart - 1) + line.substring(idxStop + 2)).trim();
-					}
-				}
-
-				return line;
-			})
-	);
-}
-
-function removeRulesFromLines(lines) {
-	let ruleStack = 0;
-
-	return getCleanedLines(
-		lines
-			.map(line => {
-				const matchStart = isRuleStart(line);
-				let matchEnd;
-
-				if (matchStart) {
-					++ruleStack;
-
-					matchEnd = isRuleEnd(
-						line.substring(matchStart[0].length + 1)
-					);
-
-					if (matchEnd) {
-						--ruleStack;
-
-						/*
-						* .selector { property: value; } ...
-						*/
-						if (ruleStack === 0) {
-							return line.substring(matchStart[0].length + 1 + matchEnd[0].length + 1).trim();
-						}
-					}
-
-					/*
-					 * ... .selector {
-					 */
-					return line.substring(0, matchStart.index);
-				}
-
-				matchEnd = isRuleEnd(line);
-				if (matchEnd) {
-					--ruleStack;
-
-					/*
-					 * } ...
-					 */
-					if (ruleStack === 0) {
-						return line.substring(matchEnd[0].length + 1).trim();
-					}
-				}
-
-				if (ruleStack > 0) {
-					return '';
-				}
-
-				return line;
-			})
-	);
-}
-
-function isRuleStart(line) {
-	return line.match(/^[^@${}()#]([^#{]|(#{)?)*\{/);
-}
-
-function isRuleEnd(line) {
-	return line.match(/\s*[^}]*\}/);
-}
-
-function splitMultiDeclarations(lines) {
-	return getCleanedLines(
-		lines
-			.map(line => line.split(/([^;]+;)/))
-			.reduce((all, splits) => all.concat(splits), [])
-	);
 }
 
 function isImport(line) {
@@ -455,67 +297,10 @@ function replaceVariableValues(value, variables) {
 		});
 }
 
-function mkdirpSync(dir) {
-	const dirs = path.normalize(dir)
-		.replace(/\\/g, '/') // Windows
-		.split('/');
-
-	let fullPath;
-	dirs.forEach(dir => {
-		fullPath = fullPath ? path.join(fullPath, dir) : dir;
-
-		if (!fs.existsSync(fullPath)) {
-			fs.mkdirSync(fullPath);
-		}
-	});
-}
-
-function writeJsonToFile(baseDir, out, json) {
-	let dir = path.dirname(out);
-	if (!dir.startsWith('/')) { // relative path
-		dir = path.join(baseDir, dir);
-	}
-
-	if (!fs.existsSync(dir)) {
-		mkdirpSync(dir);
-	}
-
-	const fileName = path.basename(out);
-	fs.writeFileSync(path.join(dir, fileName), stringifyJson(json));
-}
-
-function stringifyJson(json) {
-	return '{\r\n' +
-		Object.keys(json)
-			.map(key => {
-				const value = json[key];
-
-				return `\t"${key}": ${getJsonValueString(value)}`;
-			})
-			.join(',\r\n') +
-		'\r\n}';
-}
-
-function getJsonValueString(value) {
-	if (typeof value === 'number') {
-		return `${value}`;
-	}
-
-	if (Array.isArray(value)) {
-		return '[\r\n' + value.map(val => '\t\t' + getJsonValueString(val)).join(',\r\n') + '\r\n\t]';
-	}
-
-	if (typeof value === 'object') {
-		return '{\r\n' + Object.keys(value).map(key => `\t\t"${key}": ` + getJsonValueString(value[key])).join(',\r\n') + '\r\n\t}';
-	}
-
-	return `"${value.replace(/"/g, '\\"')}"`;
-}
-
 function scssToJson(baseDir, startFile, outFile) {
 	const variables = {};
 
-	readFile(baseDir, path.join(baseDir, startFile), variables);
+	processFile(baseDir, path.join(baseDir, startFile), variables);
 
 	if (outFile != null) {
 		writeJsonToFile(baseDir, outFile, variables);
