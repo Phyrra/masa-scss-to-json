@@ -1,0 +1,9 @@
+$arr: (
+	1,
+	2,
+	3
+);
+
+.some-selector {
+	margin: #{$arr * 2};
+}

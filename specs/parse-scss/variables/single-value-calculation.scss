@@ -1,0 +1,5 @@
+$var: 1px;
+
+.some-selector {
+	padding: #{$var};
+}

@@ -1,6 +1,5 @@
 $val: 1;
 
 .some-selector {
-	padding: $val * 2;
 	margin: #{$val * 3} #{$val * 4};
 }

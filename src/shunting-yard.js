@@ -11,6 +11,7 @@ const OperatorAssociation = {
 
 /*
 enum Token { // Must match scss-variable tokens
+	VARIABLE,
 	NUMBER,
 	OPERATOR,
 	BRACKET_OPEN,
@@ -24,6 +25,7 @@ interface IToken {
 }
 */
 const Token = {
+	VARIABLE: 'VARIABLE',
 	NUMBER: 'NUMBER',
 	OPERATOR: 'OPERATOR',
 	BRACKET_OPEN: 'BRACKET_OPEN',

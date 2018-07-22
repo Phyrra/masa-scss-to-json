@@ -88,28 +88,39 @@ const bracketStatement = [
 ];
 
 calculationStatement = [
-	{
-		canRepeat: true,
-		statement: [
-			[
+	[
+		{
+			canRepeat: true,
+			statement: [
+				[
+					{
+						statement: numberStatement
+					},
+					{
+						statement: bracketStatement
+					},
+					{
+						token: Token.VARIABLE
+					}
+				],
 				{
-					statement: numberStatement
-				},
-				{
-					statement: bracketStatement
+					token: Token.OPERATOR
 				}
-			],
-			{
-				token: Token.OPERATOR
-			}
-		]
-	},
+			]
+		},
+		{
+			empty: true
+		}
+	],
 	[
 		{
 			statement: numberStatement
 		},
 		{
 			statement: bracketStatement
+		},
+		{
+			token: Token.VARIABLE
 		}
 	]
 ];
@@ -330,9 +341,12 @@ function parseValue(value, variables) {
 				break;
 
 			case Token.VARIABLE:
+				const variableName = token.match[1].trim();
+
 				peek.push({
 					type: Token.VARIABLE,
-					part: getVariable(variables, token.match[1].trim())
+					part: getVariable(variables, variableName),
+					name: variableName
 				});
 
 				break;
@@ -403,7 +417,28 @@ function parseValue(value, variables) {
 				stack.pop();
 				peek = stack[stack.length - 1];
 
-				peek.push(shuntingYard(calc));
+				peek.push(
+					shuntingYard(
+						calc
+							.map(t => {
+								if (t.type === Token.VARIABLE) {
+									const variable = t.part;
+
+									if (variable.type !== Types.VALUE) {
+										throw new Error(`Non-value variable ${t.name} found in calculation`);
+									}
+
+									if (variable.value.length !== 1) {
+										throw new Error(`Bad variable value ${collectValueParts(variable.value)} found in calculation`);
+									}
+
+									return variable.value[0];
+								}
+
+								return t;
+							})
+					)
+				);
 
 				break;
 

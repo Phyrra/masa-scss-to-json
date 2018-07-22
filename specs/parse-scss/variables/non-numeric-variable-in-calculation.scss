@@ -1,0 +1,5 @@
+$border: 1px solid black;
+
+.some-selector {
+	border: #{$border * 2};
+}
