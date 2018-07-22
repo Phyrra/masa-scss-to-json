@@ -395,6 +395,8 @@ function parseValue(value, variables) {
 					part: ')'
 				});
 
+				break;
+
 			case Token.CALCULATION_END:
 				const calc = peek;
 
