@@ -35,6 +35,8 @@ CSS-rules are supported (but ignored). Nested variables won't be included in the
 
 Variables containing other variables in their value, such as `$border: $border-size solid $border-color;` will be substituted.
 
+Calculations in `#{..}` are supported, "flat" calculations (such as `$var: $a + 1`) are not.
+
 ### Imports
 
 Imports are supported. The `.scss` suffix is not required.
