@@ -1,4 +1,5 @@
 const tokenize = require('./tokenizer');
+const shuntingYard = require('./shunting-yard');
 
 const Types = {
 	ARRAY: 'ARRAY',
@@ -6,7 +7,6 @@ const Types = {
 	VALUE: 'VALUE'
 };
 
-// TODO: Treat #{..}
 // TODO: Treat calculations
 
 const Token = {
@@ -19,7 +19,9 @@ const Token = {
 	ARGUMENT_SEPARATOR: 'ARGUMENT_SEPARATOR',
 	FUNCTION_END: 'FUNCTION_END',
 	CALCULATION_START: 'CALCULATION_START',
-	CALCULATION: 'CALCULATION',
+	BRACKET_OPEN: 'BRACKET_OPEN',
+	BRACKET_CLOSE: 'BRACKET_CLOSE',
+	OPERATOR: 'OPERATOR',
 	CALCULATION_END: 'CALCULATION_END'
 };
 
@@ -33,7 +35,9 @@ const TokenDefinition = {
 	[Token.ARGUMENT_SEPARATOR]: new RegExp(/^,/),
 	[Token.FUNCTION_END]: new RegExp(/^\)/),
 	[Token.CALCULATION_START]: new RegExp(/^#\{/),
-	[Token.CALCULATION]: new RegExp(/^([^}]+)/),
+	[Token.BRACKET_OPEN]: new RegExp(/^\(/),
+	[Token.BRACKET_CLOSE]: new RegExp(/^\)/),
+	[Token.OPERATOR]: new RegExp(/^([+\-*\/])/),
 	[Token.CALCULATION_END]: new RegExp(/^\}/)
 };
 
@@ -69,12 +73,53 @@ const variableStatement = [
 	}
 ];
 
-const calculationStatement = [
+let calculationStatement;
+
+const bracketStatement = [
+	{
+		token: Token.BRACKET_OPEN
+	},
+	{
+		get statement() { return calculationStatement; }
+	},
+	{
+		token: Token.BRACKET_CLOSE
+	}
+];
+
+calculationStatement = [
+	{
+		canRepeat: true,
+		statement: [
+			[
+				{
+					statement: numberStatement
+				},
+				{
+					statement: bracketStatement
+				}
+			],
+			{
+				token: Token.OPERATOR
+			}
+		]
+	},
+	[
+		{
+			statement: numberStatement
+		},
+		{
+			statement: bracketStatement
+		}
+	]
+];
+
+const calculationBlockStatement = [
 	{
 		token: Token.CALCULATION_START
 	},
 	{
-		token: Token.CALCULATION
+		statement: calculationStatement
 	},
 	{
 		token: Token.CALCULATION_END
@@ -90,7 +135,7 @@ const functionStatement = [
 		colorStatement,
 		textStatement,
 		variableStatement,
-		calculationStatement
+		calculationBlockStatement
 	].map(statement => {
 		return {
 			canRepeat: true,
@@ -140,7 +185,7 @@ const valueStatement = [
 	colorStatement,
 	variableStatement,
 	textStatement,
-	calculationStatement
+	calculationBlockStatement
 ];
 
 const KNOWN_FUNCTIONS = {
@@ -273,7 +318,7 @@ function parseValue(value, variables) {
 			case Token.NUMBER:
 				peek.push({
 					type: Token.NUMBER,
-					part: token.match[1].trim(),
+					part: Number(token.match[1].trim()),
 					unit: undefined
 				});
 
@@ -324,32 +369,39 @@ function parseValue(value, variables) {
 				break;
 
 			case Token.CALCULATION_START:
-				stack.push([{
-					type: Token.CALCULATION_START,
-					part: null
-				}]);
+				stack.push([]);
 
 				break;
 
-			case Token.CALCULATION:
+			case Token.OPERATOR:
 				peek.push({
-					type: Token.CALCULATION,
+					type: Token.OPERATOR,
 					part: token.match[1].trim()
 				});
 
 				break;
 
+			case Token.BRACKET_OPEN:
+				peek.push({
+					type: Token.BRACKET_OPEN,
+					part: '('
+				});
+
+				break;
+
+			case Token.BRACKET_CLOSE:
+				peek.push({
+					type: Token.BRACKET_CLOSE,
+					part: ')'
+				});
+
 			case Token.CALCULATION_END:
-				// TODO
-				const calc = peek.slice(1);
+				const calc = peek;
 
 				stack.pop();
 				peek = stack[stack.length - 1];
 
-				peek.push({
-					type: Token.TEXT,
-					part: '#{' + calc[0].part + '}'
-				});
+				peek.push(shuntingYard(calc));
 
 				break;
 
