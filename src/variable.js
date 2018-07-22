@@ -17,7 +17,10 @@ const Token = {
 	VARIABLE: 'VARIABLE',
 	FUNCTION: 'FUNCTION',
 	ARGUMENT_SEPARATOR: 'ARGUMENT_SEPARATOR',
-	FUNCTION_END: 'FUNCTION_END'
+	FUNCTION_END: 'FUNCTION_END',
+	CALCULATION_START: 'CALCULATION_START',
+	CALCULATION: 'CALCULATION',
+	CALCULATION_END: 'CALCULATION_END'
 };
 
 const TokenDefinition = {
@@ -28,7 +31,10 @@ const TokenDefinition = {
 	[Token.VARIABLE]: new RegExp(/^\$([\w-]+)/),
 	[Token.FUNCTION]: new RegExp(/^([a-zA-Z_][\w-]*)\s*\(/),
 	[Token.ARGUMENT_SEPARATOR]: new RegExp(/^,/),
-	[Token.FUNCTION_END]: new RegExp(/^\)/)
+	[Token.FUNCTION_END]: new RegExp(/^\)/),
+	[Token.CALCULATION_START]: new RegExp(/^#\{/),
+	[Token.CALCULATION]: new RegExp(/^([^}]+)/),
+	[Token.CALCULATION_END]: new RegExp(/^\}/)
 };
 
 const numberStatement = [
@@ -63,6 +69,18 @@ const variableStatement = [
 	}
 ];
 
+const calculationStatement = [
+	{
+		token: Token.CALCULATION_START
+	},
+	{
+		token: Token.CALCULATION
+	},
+	{
+		token: Token.CALCULATION_END
+	}
+];
+
 const functionStatement = [
 	{
 		token: Token.FUNCTION
@@ -71,7 +89,8 @@ const functionStatement = [
 		numberStatement,
 		colorStatement,
 		textStatement,
-		variableStatement
+		variableStatement,
+		calculationStatement
 	].map(statement => {
 		return {
 			canRepeat: true,
@@ -120,7 +139,8 @@ const valueStatement = [
 	numberStatement,
 	colorStatement,
 	variableStatement,
-	textStatement
+	textStatement,
+	calculationStatement
 ];
 
 const KNOWN_FUNCTIONS = {
@@ -300,6 +320,36 @@ function parseValue(value, variables) {
 						part: functionName + '(' + functionArguments.map(val => valueToString(val)).join(', ') + ')'
 					});
 				}
+
+				break;
+
+			case Token.CALCULATION_START:
+				stack.push([{
+					type: Token.CALCULATION_START,
+					part: null
+				}]);
+
+				break;
+
+			case Token.CALCULATION:
+				peek.push({
+					type: Token.CALCULATION,
+					part: token.match[1].trim()
+				});
+
+				break;
+
+			case Token.CALCULATION_END:
+				// TODO
+				const calc = peek.slice(1);
+
+				stack.pop();
+				peek = stack[stack.length - 1];
+
+				peek.push({
+					type: Token.TEXT,
+					part: '#{' + calc[0].part + '}'
+				});
 
 				break;
 
