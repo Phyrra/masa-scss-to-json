@@ -2,7 +2,7 @@ const path = require('path');
 
 const reader = require('./scss-reader');
 const parser = require('./scss-parser');
-const { parseValue, collectValue, Types } = require('./variable');
+const { parseValue, collectValue, Types } = require('./scss-variable');
 
 function mergeFileToBlock(baseDir, parentFile, importFile, block) {
 	const result = parser(

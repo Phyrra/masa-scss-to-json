@@ -1,5 +1,5 @@
 const tokenize = require('./tokenizer');
-const { Types } = require('./variable');
+const { Types } = require('./scss-variable');
 
 // TODO: @media rules
 
