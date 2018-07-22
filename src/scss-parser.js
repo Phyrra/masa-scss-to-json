@@ -57,6 +57,23 @@ const plainVariableStatement = [
 	}
 ];
 
+const multiArrayValueStatement = [
+	{
+		canRepeat: true,
+		statement: [
+			{
+				token: Token.ARRAY_VALUE
+			},
+			{
+				token: Token.OBJECT_VALUE_SEPARATOR
+			}
+		]
+	},
+	{
+		token: Token.ARRAY_VALUE
+	}
+];
+
 const mapEntryStatement = [
 	{
 		token: Token.MAP_ENTRY_DECLARATION
@@ -66,52 +83,33 @@ const mapEntryStatement = [
 	}
 ];
 
+const multiMapValueStatement = [
+	{
+		canRepeat: true,
+		statement: [
+			{
+				statement: mapEntryStatement
+			},
+			{
+				token: Token.OBJECT_VALUE_SEPARATOR
+			}
+		]
+	},
+	{
+		statement: mapEntryStatement
+	}
+];
+
 const objectVariableStatement = [
 	{
 		token: Token.VARIABLE_OBJECT_VALUE
 	},
 	[
 		{
-			statement: [
-				[
-					{
-						statement: [
-							{
-								canRepeat: true,
-								statement: [
-									{
-										token: Token.ARRAY_VALUE
-									},
-									{
-										token: Token.OBJECT_VALUE_SEPARATOR
-									}
-								]
-							},
-							{
-								token: Token.ARRAY_VALUE
-							}
-						]
-					},
-					{
-						statement: [
-							{
-								canRepeat: true,
-								statement: [
-									{
-										statement: mapEntryStatement
-									},
-									{
-										token: Token.OBJECT_VALUE_SEPARATOR
-									}
-								]
-							},
-							{
-								statement: mapEntryStatement
-							}
-						]
-					}
-				]
-			]
+			statement: multiArrayValueStatement
+		},
+		{
+			statement: multiMapValueStatement
 		},
 		{
 			token: Token.ARRAY_VALUE
@@ -186,34 +184,41 @@ const includeStatement = [
 let ruleStatement;
 let blockStatement;
 
+const blockContentStatement = [
+	{
+		canRepeat: true,
+		statement: [
+			[
+				{
+					get statement() { return ruleStatement; }
+				},
+				{
+					get statement() { return blockStatement; }
+				},
+				{
+					statement: variableStatement
+				},
+				{
+					statement: importStatement
+				},
+				{
+					statement: includeStatement
+				},
+				{
+					statement: propertyStatement
+				}
+			]
+		]
+	}
+];
+
 ruleStatement = [
 	{
 		token: Token.RULE_START
 	},
 	[
 		{
-			canRepeat: true,
-			get statement() { return ruleStatement; }
-		},
-		{
-			canRepeat: true,
-			get statement() { return blockStatement; }
-		},
-		{
-			canRepeat: true,
-			statement: variableStatement
-		},
-		{
-			canRepeat: true,
-			statement: importStatement
-		},
-		{
-			canRepeat: true,
-			statement: includeStatement
-		},
-		{
-			canRepeat: true,
-			statement: propertyStatement
+			statement: blockContentStatement
 		},
 		{
 			empty: true
@@ -230,28 +235,7 @@ blockStatement = [
 	},
 	[
 		{
-			canRepeat: true,
-			get statement() { return ruleStatement; }
-		},
-		{
-			canRepeat: true,
-			get statement() { return blockStatement; }
-		},
-		{
-			canRepeat: true,
-			statement: variableStatement
-		},
-		{
-			canRepeat: true,
-			statement: importStatement
-		},
-		{
-			canRepeat: true,
-			statement: includeStatement
-		},
-		{
-			canRepeat: true,
-			statement: propertyStatement
+			statement: blockContentStatement
 		},
 		{
 			empty: true
