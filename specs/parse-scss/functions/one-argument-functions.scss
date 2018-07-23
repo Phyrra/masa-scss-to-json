@@ -1,0 +1,5 @@
+$a: foo(1);
+$b: foo(black);
+$c: foo(#fff);
+$d: foo($a);
+$e: foo(#{1 + 1});

@@ -26,7 +26,7 @@ const Token = {
 };
 
 const TokenDefinition = {
-	[Token.TEXT]: new RegExp(/^([a-zA-Z_][\w-]*)/), // this will match function start foo( and catch it
+	[Token.TEXT]: new RegExp(/^([a-zA-Z][\w-]*)/), // this will also match function start foo( and catch it
 	[Token.COLOR]: new RegExp(/^#([0-9a-fA-F]+)/),
 	[Token.NUMBER]: new RegExp(/^([+-]?(\d*\.\d+|\d+\.\d*)|[+-]?\d+)/),
 	[Token.UNIT]: new RegExp(/^([a-zA-Z%]+)/),
@@ -87,104 +87,103 @@ const bracketStatement = [
 	}
 ];
 
+const calculationArgument = [
+	{
+		statement: numberStatement
+	},
+	{
+		statement: bracketStatement
+	},
+	{
+		token: Token.VARIABLE
+	}
+];
+
 calculationStatement = [
-	[
-		{
-			canRepeat: true,
-			statement: [
-				[
-					{
-						statement: numberStatement
-					},
-					{
-						statement: bracketStatement
-					},
-					{
-						token: Token.VARIABLE
-					}
-				],
-				{
-					token: Token.OPERATOR
-				}
-			]
-		},
-		{
-			empty: true
-		}
-	],
-	[
-		{
-			statement: numberStatement
-		},
-		{
-			statement: bracketStatement
-		},
-		{
-			token: Token.VARIABLE
-		}
-	]
+	{
+		canRepeat: true,
+		statement: [
+			calculationArgument,
+			{
+				token: Token.OPERATOR
+			}
+		]
+	},
+	calculationArgument
 ];
 
 const calculationBlockStatement = [
 	{
 		token: Token.CALCULATION_START
 	},
-	{
-		statement: calculationStatement
-	},
+	[
+		{
+			statement: calculationStatement
+		},
+		{
+			statement: [
+				calculationArgument
+			]
+		}
+	],
 	{
 		token: Token.CALCULATION_END
 	}
 ];
 
-const functionStatement = [
+let functionStatement;
+
+const functionArgument = [
+	{
+		statement: numberStatement
+	},
+	{
+		statement: colorStatement
+	},
+	{
+		statement: textStatement
+	},
+	{
+		statement: variableStatement
+	},
+	{
+		statement: calculationBlockStatement
+	},
+	{
+		get statement() { return functionStatement; }
+	}
+];
+
+const functionArgumentListStatement = [
+	{
+		canRepeat: true,
+		statement: [
+			functionArgument,
+			{
+				token: Token.ARGUMENT_SEPARATOR
+			}
+		]
+	},
+	functionArgument
+];
+
+functionStatement = [
 	{
 		token: Token.FUNCTION
 	},
 	[
-		numberStatement,
-		colorStatement,
-		textStatement,
-		variableStatement,
-		calculationBlockStatement
-	].map(statement => {
-		return {
-			canRepeat: true,
-			statement: [
-				{
-					statement: statement
-				},
-				[
-					{
-						token: Token.ARGUMENT_SEPARATOR
-					},
-					{
-						empty: true
-					}
-				]
-			]
-		};
-	}).concat([
 		{
-			canRepeat: true,
+			empty: true
+		},
+		{
 			statement: [
-				{
-					get statement() { return functionStatement; }
-				},
-				[
-					{
-						token: Token.ARGUMENT_SEPARATOR
-					},
-					{
-						empty: true
-					}
-				]
+				functionArgument
 			]
 		},
 		{
-			empty: true
+			statement: functionArgumentListStatement
 		}
-	]),
+	],
 	{
 		token: Token.FUNCTION_END
 	}
