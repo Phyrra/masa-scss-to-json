@@ -30,37 +30,4 @@ describe('variables', () => {
 
 		expect(json.rules[0].rules[0].properties[0].value).toEqual('1px solid black');
 	});
-
-	// TODO
-	xit('should handle inline calculations', () => {
-		const json = rollup('./specs/parse-scss/variables', 'calculations');
-
-		expect(json.rules[0].properties[1].value).toEqual(2);
-	});
-
-	describe('block calculations', () => {
-		it('should handle block calculations', () => {
-			const json = rollup('./specs/parse-scss/variables', 'block-calculation');
-
-			expect(json.rules[0].properties[0].value).toEqual('3 4');
-		});
-
-		it('should handle a single value in a calculation', () => {
-			const json = rollup('./specs/parse-scss/variables', 'single-value-calculation');
-
-			expect(json.rules[0].properties[0].value).toEqual('1px');
-		});
-
-		it('should throw an error if an array variable is used in calculation', () => {
-			expect(() => {
-				rollup('./specs/parse-scss/variables', 'array-variable-in-calculation');
-			}).toThrowError('Non-value variable arr found in calculation');
-		});
-
-		it('should throw an error if a non-numeric variable is used in calculation', () => {
-			expect(() => {
-				rollup('./specs/parse-scss/variables', 'non-numeric-variable-in-calculation');
-			}).toThrowError('Bad variable value 1px solid black found in calculation')
-		});
-	});
 });

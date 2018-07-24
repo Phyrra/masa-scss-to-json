@@ -128,7 +128,15 @@ const calculationBlockStatement = [
 	],
 	{
 		token: Token.CALCULATION_END
-	}
+	},
+	[
+		{
+			token: Token.UNIT
+		},
+		{
+			empty: true
+		}
+	]
 ];
 
 let functionStatement;
@@ -335,7 +343,14 @@ function parseValue(value, variables) {
 				break;
 
 			case Token.UNIT:
-				peek[peek.length - 1].unit = token.match[1].trim();
+				const prevNumber = peek[peek.length - 1];
+				const unit = token.match[1].trim();
+
+				if (prevNumber.unit) {
+					throw new Error(`Cannot overwrite unit ${prevNumber.unit} with ${unit}`);
+				}
+
+				prevNumber.unit = unit;
 
 				break;
 

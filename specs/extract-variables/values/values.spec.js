@@ -95,5 +95,9 @@ describe('values', () => {
 		it('should interpret multi parted values', () => {
 			expect(json.multipartValue).toEqual('1px solid black');
 		});
+
+		it('should understand % as non-text unit', () => {
+			expect(json.width).toEqual('50%');
+		});
 	});
 });
