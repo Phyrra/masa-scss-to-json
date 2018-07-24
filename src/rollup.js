@@ -126,6 +126,23 @@ function updateVariablesAndProperties(data, parentScope) {
 		);
 	}
 
+	if (data.media) {
+		result.media = true;
+
+		result.mediaType = data.mediaType;
+
+		result.mediaConditions = data.mediaConditions.map(
+			condition => Object.assign(
+				condition,
+				{
+					value: collectValue(
+						parseValue(condition.value, allRolledUpVariables)
+					)
+				}
+			)
+		);
+	}
+
 	return result;
 }
 

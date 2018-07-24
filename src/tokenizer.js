@@ -128,6 +128,8 @@ function canMatchStatement(statement/*: Statement*/, i/*: number*/, line/*: stri
 }
 
 function canMatchPart(part/*: RuleNode */, line/*: string*/)/*: IResult[] */ {
+	//console.log('matching', part, 'against', line);
+
 	if (part.statement) {
 		const nestedResults/*: IResult[]*/ = [];
 		canMatchStatement(part.statement, 0, line, [], nestedResults);

@@ -21,11 +21,15 @@ const Token = {
 	PROPERTY_VALUE: 'PROPERTY_VALUE',
 	PROPERTY_IMPORTANT: 'PROPERTY_IMPORTANT',
 	CONTROL_BLOCK_START: 'CONTROL_BLOCK_START',
-	INCLUDE_DECLARATION: 'INCLUDE_DECLARATION'
+	INCLUDE_DECLARATION: 'INCLUDE_DECLARATION',
+	MEDIA_START: 'MEDIA_START',
+	MEDIA_TYPE: 'MEDIA_TYPE',
+	MEDIA_RULE: 'MEDIA_RULE',
+	MEDIA_BLOCK_START: 'MEDIA_BLOCK_START'
 };
 
 const TokenDefinition = {
-	[Token.IMPORT_DECLARATION]: new RegExp(/^@import\s+["']([^"']+)["']\s*;/),
+	[Token.IMPORT_DECLARATION]: new RegExp(/^@import\s+["']([^"']+)["']\s*;/i),
 	[Token.VARIABLE_DECLARATION]: new RegExp(/^\$([^:\s]+)\s*:/),
 	[Token.VARIABLE_PLAIN_VALUE]: new RegExp(/^([^(][^!;\n]*)/),
 	[Token.VARIABLE_OBJECT_VALUE]: new RegExp(/^\(/),
@@ -34,15 +38,19 @@ const TokenDefinition = {
 	[Token.MAP_ENTRY_VALUE]: new RegExp(/^([^,)]+)/),
 	[Token.OBJECT_VALUE_SEPARATOR]: new RegExp(/^,/),
 	[Token.OBJECT_END]: new RegExp(/^\)/),
-	[Token.VARIABLE_DEFAULT]: new RegExp(/^!\s*default/),
+	[Token.VARIABLE_DEFAULT]: new RegExp(/^!\s*default/i),
 	[Token.STATEMENT_END]: new RegExp(/^;/),
 	[Token.RULE_START]: new RegExp(/^([^@${}()]([^#{;]|#{?)*)\{/),
 	[Token.BLOCK_END]: new RegExp(/^\}/),
 	[Token.PROPERTY_DECLARATION]: new RegExp(/^([\w-]+)\s*:/),
 	[Token.PROPERTY_VALUE]: new RegExp(/^([^!;\n]+)/),
-	[Token.PROPERTY_IMPORTANT]: new RegExp(/^!\s*important/),
-	[Token.CONTROL_BLOCK_START]: new RegExp(/^@(\w+)\s*([^{;]*)\{/),
-	[Token.INCLUDE_DECLARATION]: new RegExp(/^@include\s+([^;]+);/)
+	[Token.PROPERTY_IMPORTANT]: new RegExp(/^!\s*important/i),
+	[Token.CONTROL_BLOCK_START]: new RegExp(/^@((?!media)\w+)\s*([^{;]*)\{/),
+	[Token.INCLUDE_DECLARATION]: new RegExp(/^@include\s+([^;]+);/i),
+	[Token.MEDIA_START]: new RegExp(/^@media/i),
+	[Token.MEDIA_TYPE]: new RegExp(/^((not|only)\s+)?(\w+)\s+/),
+	[Token.MEDIA_RULE]: new RegExp(/^(and|or|not)\s+\(([\w-]+):\s*([^\)]+)\)/),
+	[Token.MEDIA_BLOCK_START]: new RegExp(/^\{/)
 };
 
 const importStatement = [
@@ -183,6 +191,7 @@ const includeStatement = [
 
 let ruleStatement;
 let blockStatement;
+let mediaRuleStatement;
 
 const blockContentStatement = [
 	{
@@ -194,6 +203,9 @@ const blockContentStatement = [
 				},
 				{
 					get statement() { return blockStatement; }
+				},
+				{
+					get statement() { return mediaRuleStatement; }
 				},
 				{
 					statement: variableStatement
@@ -246,9 +258,37 @@ blockStatement = [
 	}
 ];
 
+mediaRuleStatement = [
+	{
+		token: Token.MEDIA_START
+	},
+	{
+		token: Token.MEDIA_TYPE
+	},
+	{
+		canRepeat: true,
+		token: Token.MEDIA_RULE
+	},
+	{
+		token: Token.MEDIA_BLOCK_START
+	},
+	[
+		{
+			statement: blockContentStatement
+		},
+		{
+			empty: true
+		}
+	],
+	{
+		token: Token.BLOCK_END
+	}
+];
+
 const scssStatement = [
 	ruleStatement,
 	blockStatement,
+	mediaRuleStatement,
 	importStatement,
 	variableStatement,
 	includeStatement
@@ -389,6 +429,44 @@ function parseScss(lines) {
 				});
 
 				stack.push(peek.blocks[peek.blocks.length - 1]);
+
+				break;
+
+			case Token.MEDIA_START:
+				peek.rules.push({
+					media: true,
+					mediaType: null,
+					mediaConditions: [],
+					imports: [],
+					variables: [],
+					rules: [],
+					blocks: [],
+					properties: []
+				});
+
+				stack.push(peek.rules[peek.rules.length - 1]);
+
+				break;
+
+			case Token.MEDIA_TYPE:
+				peek.mediaType = {
+					modifier: token.match[1] ? token.match[1].trim() : null,
+					type: token.match[3].trim()
+				};
+
+				break;
+
+			case Token.MEDIA_RULE:
+				peek.mediaConditions.push({
+					modifier: token.match[1].trim(),
+					property: token.match[2].trim(),
+					value: token.match[3].trim()
+				});
+
+				break;
+
+			case Token.MEDIA_BLOCK_START:
+				// ignore
 
 				break;
 
