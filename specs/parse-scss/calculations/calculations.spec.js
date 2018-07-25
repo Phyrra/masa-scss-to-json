@@ -41,7 +41,7 @@ describe('block calculations', () => {
 });
 
 // TODO
-xdescribe('inline calculaitons', () => {
+xdescribe('inline calculations', () => {
 	it('should handle inline calculations', () => {
 		const json = rollup('./specs/parse-scss/calculations', 'inline-calcultation');
 

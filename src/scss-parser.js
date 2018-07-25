@@ -265,10 +265,19 @@ mediaRuleStatement = [
 	{
 		token: Token.MEDIA_TYPE
 	},
-	{
-		canRepeat: true,
-		token: Token.MEDIA_RULE
-	},
+	[
+		{
+			statement: [
+				{
+					canRepeat: true,
+					token: Token.MEDIA_RULE
+				}
+			]
+		},
+		{
+			empty: true
+		}
+	],
 	{
 		token: Token.MEDIA_BLOCK_START
 	},
