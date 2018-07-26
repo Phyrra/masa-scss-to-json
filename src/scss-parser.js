@@ -14,6 +14,7 @@ const Token = {
 	OBJECT_VALUE_SEPARATOR: 'OBJECT_VALUE_SEPARATOR',
 	OBJECT_END: 'OBJECT_END',
 	VARIABLE_DEFAULT: 'VARIABLE_DEFAULT',
+	VARIABLE_GLOBAL: 'VARIABLE_GLOBAL',
 	STATEMENT_END: 'STATEMENT_END',
 	RULE_START: 'RULE_START',
 	BLOCK_END: 'BLOCK_END',
@@ -39,6 +40,7 @@ const TokenDefinition = {
 	[Token.OBJECT_VALUE_SEPARATOR]: new RegExp(/^,/),
 	[Token.OBJECT_END]: new RegExp(/^\)/),
 	[Token.VARIABLE_DEFAULT]: new RegExp(/^!\s*default/i),
+	[Token.VARIABLE_GLOBAL]: new RegExp(/^!\s*global/i),
 	[Token.STATEMENT_END]: new RegExp(/^;/),
 	[Token.RULE_START]: new RegExp(/^([^@${}()]([^#{;]|#{?)*)\{/),
 	[Token.BLOCK_END]: new RegExp(/^\}/),
@@ -148,19 +150,18 @@ const variableStatement = [
 	],
 	[
 		{
-			token: Token.STATEMENT_END
+			token: Token.VARIABLE_DEFAULT
 		},
 		{
-			statement: [
-				{
-					token: Token.VARIABLE_DEFAULT
-				},
-				{
-					token: Token.STATEMENT_END
-				}
-			]
+			token: Token.VARIABLE_GLOBAL
+		},
+		{
+			empty: true
 		}
-	]
+	],
+	{
+		token: Token.STATEMENT_END
+	}
 ];
 
 const propertyStatement = [
@@ -334,7 +335,8 @@ function parseScss(lines) {
 					name: token.match[1].trim(),
 					type: null,
 					value: null,
-					default: false
+					default: false,
+					global: false
 				});
 
 				break;
@@ -404,6 +406,16 @@ function parseScss(lines) {
 
 			case Token.VARIABLE_DEFAULT:
 				peek.variables[peek.variables.length - 1].default = true
+
+				break;
+
+			case Token.VARIABLE_GLOBAL:
+				const globalVariable = peek.variables.pop();
+				globalVariable.global = true;
+
+				_root.variables.push(
+					globalVariable
+				);
 
 				break;
 

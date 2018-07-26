@@ -1,0 +1,5 @@
+$var: 1;
+
+.some-selector {
+	$var: 2 !global;
+}

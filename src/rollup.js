@@ -50,6 +50,10 @@ function rollupVariables(parentScope, variables) {
 				return; // nothing to do
 			}
 
+			if (variable.global) {
+				throw new Error(`Variable ${variable.name} already exists, cannot overwrite with "!global"`);
+			}
+
 			throw new Error(`Variable ${variable.name} already exists, maybe missing "!default"`);
 		}
 
