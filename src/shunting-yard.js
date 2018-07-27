@@ -96,14 +96,14 @@ const Operator/*: (key: string) => IOperator*/ = {
 		precedence: 2,
 		association: OperatorAssociation.LEFT,
 		calc: (left, right) => {
-			if (left.unit !== right.unit) {
+			if (left.unit !== right.unit && (left.unit != null && right.unit != null)) {
 				throw new Error(`Cannot add ${unitToString(right.unit)} to ${unitToString(left.unit)}`);
 			}
 
 			return {
 				type: Token.NUMBER,
 				part: left.part + right.part,
-				unit: left.unit
+				unit: left.unit || right.unit
 			};
 		}
 	},
@@ -111,14 +111,14 @@ const Operator/*: (key: string) => IOperator*/ = {
 		precedence: 2,
 		association: OperatorAssociation.LEFT,
 		calc: (left, right) => {
-			if (left.unit !== right.unit) {
+			if (left.unit !== right.unit && (left.unit != null && right.unit != null)) {
 				throw new Error(`Cannot subtract ${unitToString(right.unit)} from ${unitToString(left.unit)}`);
 			}
 
 			return {
 				type: Token.NUMBER,
 				part: left.part - right.part,
-				unit: left.unit
+				unit: left.unit || right.unit
 			};
 		}
 	}

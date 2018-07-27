@@ -194,6 +194,54 @@ describe('shunting yard', () => {
 				});
 		});
 
+		it('should add pixels and no-unit', () => {
+			expect(shuntingYard([
+				{ type: 'NUMBER', part: 1 },
+				{ type: 'OPERATOR', part: '+' },
+				{ type: 'NUMBER', part: 2, unit: 'px' }
+			]))
+				.toEqual({
+					type: 'NUMBER',
+					part: 3,
+					unit: 'px'
+				});
+
+			expect(shuntingYard([
+				{ type: 'NUMBER', part: 1, unit: 'px' },
+				{ type: 'OPERATOR', part: '+' },
+				{ type: 'NUMBER', part: 2 }
+			]))
+				.toEqual({
+					type: 'NUMBER',
+					part: 3,
+					unit: 'px'
+				});
+		});
+
+		it('should subtract pixels and no-unit', () => {
+			expect(shuntingYard([
+				{ type: 'NUMBER', part: 1 },
+				{ type: 'OPERATOR', part: '-' },
+				{ type: 'NUMBER', part: 2, unit: 'px' }
+			]))
+				.toEqual({
+					type: 'NUMBER',
+					part: -1,
+					unit: 'px'
+				});
+
+			expect(shuntingYard([
+				{ type: 'NUMBER', part: 1, unit: 'px' },
+				{ type: 'OPERATOR', part: '-' },
+				{ type: 'NUMBER', part: 2 }
+			]))
+				.toEqual({
+					type: 'NUMBER',
+					part: -1,
+					unit: 'px'
+				});
+		});
+
 		describe('errors', () => {
 			it('should throw an error when multiplying pixels', () => {
 				expect(() => {
@@ -225,24 +273,6 @@ describe('shunting yard', () => {
 				}).toThrowError('Cannot add em to px');
 			});
 
-			it('should throw an error when adding unit and no-unit', () => {
-				expect(() => {
-					shuntingYard([
-						{ type: 'NUMBER', part: 1 },
-						{ type: 'OPERATOR', part: '+' },
-						{ type: 'NUMBER', part: 2, unit: 'px' }
-					])
-				}).toThrowError('Cannot add px to no-unit');
-
-				expect(() => {
-					shuntingYard([
-						{ type: 'NUMBER', part: 1, unit: 'px' },
-						{ type: 'OPERATOR', part: '+' },
-						{ type: 'NUMBER', part: 2 }
-					])
-				}).toThrowError('Cannot add no-unit to px');
-			});
-
 			it('should throw an error when subtracting different units', () => {
 				expect(() => {
 					shuntingYard([
@@ -251,24 +281,6 @@ describe('shunting yard', () => {
 						{ type: 'NUMBER', part: 2, unit: 'em' }
 					])
 				}).toThrowError('Cannot subtract em from px');
-			});
-
-			it('should throw an error when subtracting unit and no-unit', () => {
-				expect(() => {
-					shuntingYard([
-						{ type: 'NUMBER', part: 1 },
-						{ type: 'OPERATOR', part: '-' },
-						{ type: 'NUMBER', part: 2, unit: 'px' }
-					])
-				}).toThrowError('Cannot subtract px from no-unit');
-
-				expect(() => {
-					shuntingYard([
-						{ type: 'NUMBER', part: 1, unit: 'px' },
-						{ type: 'OPERATOR', part: '-' },
-						{ type: 'NUMBER', part: 2 }
-					])
-				}).toThrowError('Cannot subtract no-unit from px');
 			});
 		});
 	});
