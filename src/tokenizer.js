@@ -86,42 +86,34 @@ class Tokenizer {
 			}];
 		}
 
-		let results/*: IResult[]*/ = [];
-
 		const part/*: StatementNode | StatementNode[]*/ = statement[i];
 
-		if (Array.isArray(part)) {
-			part
-				.map((option/*: StatementNode*/) => {
-					if (option.canRepeat) {
-						throw new Error(`Repeat in options is not allowed`);
-					}
-
-					return this._canMatchPart(option, line);
-				})
-				.reduce((allPartialMatches, partials) => allPartialMatches.concat(partials), [])
-				.forEach((partial/*: IResult*/) => results = results.concat(
-					this._canMatchStatement(statement, i + 1, partial.line, tokens.concat(partial.tokens))
-				));
-		} else {
-			this._canMatchPart(part, line)
-				.forEach((partial/*: IResult*/) => {
-					if (part.canRepeat) {
-						results = results.concat(
-							this._canMatchStatement(statement, i, partial.line, tokens.concat(partial.tokens))
-						);
-					}
-
-					results = results.concat(
-						this._canMatchStatement(statement, i + 1, partial.line, tokens.concat(partial.tokens))
-					);
-				});
-		}
-
-		return results;
+		return (Array.isArray(part) ? part : [part])
+			.map((option/*: RuleNode*/) => this._canMatchOption(option, line, tokens, statement, i))
+			.reduce((allResults/*: IResult[]*/, partials/*: IResult[]*/) => allResults.concat(partials), []);
 	}
 
-	_canMatchPart(part/*: RuleNode */, line/*: string*/)/*: IResult[] */ {
+	_canMatchOption(option/*: RuleNode*/, line/*: string*/, tokens/*: IToken[]*/, statement/*: Statement*/, i/*: number*/)/*: IResult[]*/ {
+		return this._canMatchPart(option, line)
+			.map((partial/*: IResult*/) => {
+				let results/*: IResult[]*/ = [];
+
+				if (option.canRepeat) {
+					results = results.concat(
+						this._canMatchOption(option, partial.line, tokens.concat(partial.tokens), statement, i)
+					);
+				}
+
+				results = results.concat(
+					this._canMatchStatement(statement, i + 1, partial.line, tokens.concat(partial.tokens))
+				);
+
+				return results;
+			})
+			.reduce((allResults/*: IResult[]*/, partials/*: IResult[]*/) => allResults.concat(partials), []);
+	}
+
+	_canMatchPart(part/*: RuleNode*/, line/*: string*/)/*: IResult[]*/ {
 		//console.log('matching', part, 'against', line);
 
 		if (part.statement) {
