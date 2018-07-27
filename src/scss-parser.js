@@ -68,17 +68,22 @@ const plainVariableStatement = [
 ];
 
 const multiArrayValueStatement = [
-	{
-		canRepeat: true,
-		statement: [
-			{
-				token: Token.ARRAY_VALUE
-			},
-			{
-				token: Token.OBJECT_VALUE_SEPARATOR
-			}
-		]
-	},
+	[
+		{
+			canRepeat: true,
+			statement: [
+				{
+					token: Token.ARRAY_VALUE
+				},
+				{
+					token: Token.OBJECT_VALUE_SEPARATOR
+				}
+			]
+		},
+		{
+			empty: true
+		}
+	],
 	{
 		token: Token.ARRAY_VALUE
 	}
@@ -94,17 +99,22 @@ const mapEntryStatement = [
 ];
 
 const multiMapValueStatement = [
-	{
-		canRepeat: true,
-		statement: [
-			{
-				statement: mapEntryStatement
-			},
-			{
-				token: Token.OBJECT_VALUE_SEPARATOR
-			}
-		]
-	},
+	[
+		{
+			canRepeat: true,
+			statement: [
+				{
+					statement: mapEntryStatement
+				},
+				{
+					token: Token.OBJECT_VALUE_SEPARATOR
+				}
+			]
+		},
+		{
+			empty: true
+		}
+	],
 	{
 		statement: mapEntryStatement
 	}
@@ -120,12 +130,6 @@ const objectVariableStatement = [
 		},
 		{
 			statement: multiMapValueStatement
-		},
-		{
-			token: Token.ARRAY_VALUE
-		},
-		{
-			statement: mapEntryStatement
 		},
 		{
 			empty: true
@@ -268,12 +272,8 @@ mediaRuleStatement = [
 	},
 	[
 		{
-			statement: [
-				{
-					canRepeat: true,
-					token: Token.MEDIA_RULE
-				}
-			]
+			canRepeat: true,
+			token: Token.MEDIA_RULE
 		},
 		{
 			empty: true
