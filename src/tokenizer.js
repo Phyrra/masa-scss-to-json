@@ -73,7 +73,7 @@ class Tokenizer {
 			}
 		}
 
-		//console.log(tokens.map(token => token.token + ' [' + token.match.slice(1).join(', ' + ']')));
+		//console.log(tokens.map(token => token.token + ' [' + token.match.slice(1).join(', ') + ']'));
 
 		return tokens;
 	}
