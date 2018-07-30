@@ -97,26 +97,27 @@ class Tokenizer {
 
 		const part/*: StatementNode | StatementNode[]*/ = statement[i];
 
-		const paths/*: { RuleNode, IResult }[] */ = (Array.isArray(part) ? part : [part])
-			.map((option/*: RuleNode*/) => {
-				return {
-					option: option,
-					result: this._canMatchOption(option, line, tokens, statement, i)
-				};
-			})
-			.filter((path/*: IResult*/) => !!path.result);
+		const filterIf = (arr, condition, filter) => {
+			if (condition(arr)) {
+				return arr.filter(filter);
+			}
 
-		let filteredPaths/*: IResult[]*/;
-		if (paths.length > 1) {
-			filteredPaths = paths
-				.filter(path => !path.option.empty)
-				.map(path => path.result);
-		} else {
-			filteredPaths = paths
-				.map(path => path.result);
+			return arr;
 		}
 
-		return filteredPaths
+		return filterIf(
+			(Array.isArray(part) ? part : [part])
+				.map((option/*: RuleNode*/) => {
+					return {
+						option: option,
+						result: this._canMatchOption(option, line)
+					};
+				})
+				.filter((path/*: IResult*/) => !!path.result),
+			(paths) => paths.length > 1,
+			(path) => !path.option.empty
+		)
+			.map(path => path.result)
 			.map(path => this._canMatchStatementStep(statement, i + 1, path.line, tokens.concat(path.tokens)))
 			.reduce((allPaths/*: IResult[]*/, partials/*: IResult[]*/) => allPaths.concat(partials), []);
 	}
