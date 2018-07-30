@@ -39,26 +39,14 @@ class Tokenizer {
 
 		while (oneLine.length > 0) {
 			const found/*: boolean*/ = root.some((statement/*: Statement*/) => {
-				const results/*: IResult[]*/ = this._canMatchStatement(statement, 0, oneLine, []);
+				const result/*: IResult*/ = this._canMatchStatement(statement, oneLine);
 
-				if (results.length === 0) {
+				if (result == null) {
 					return false;
 				}
 
-				/*
-				 * Edge case:
-				 * Statement ends in [ { empty: true }, { token: Token } ]
-				 * This will produce 2 possible paths,
-				 * in this case take the longest one
-				 */
-				const longestMatch = results
-					.reduce(
-						(longest/*: IResult*/, match/*: IResult*/) => match.tokens.length > longest.tokens.length ? match : longest,
-						{ tokens: [] }
-					);
-
-				oneLine = longestMatch.line;
-				tokens = tokens.concat(longestMatch.tokens);
+				oneLine = result.line;
+				tokens = tokens.concat(result.tokens);
 
 				return true;
 			});
@@ -78,7 +66,28 @@ class Tokenizer {
 		return tokens;
 	}
 
-	_canMatchStatement(statement/*: Statement*/, i/*: number*/, line/*: string*/, tokens/*: IToken[]*/)/*: IResult[]*/ {
+	_canMatchStatement(statement/*: Statement*/, line/*: string*/)/*: IResult*/ {
+		const results/*: IResult[]*/ = this._canMatchStatementStep(statement, 0, line, []);
+
+		if (results.length === 0) {
+			return null;
+		}
+
+		if (results.length > 1) {
+			console.log(
+				'FOUND_OPTIONS',
+				results.map(
+					result => result.tokens.map(token => token.token + ' [' + token.match.slice(1).join(', ') + ']')
+				)
+			);
+
+			throw new Error(`Multiple options found for ${line}`);
+		}
+
+		return results[0];
+	}
+
+	_canMatchStatementStep(statement/*: Statement*/, i/*: number*/, line/*: string*/, tokens/*: IToken[]*/)/*: IResult[]*/ {
 		if (i >= statement.length) {
 			return [{
 				line: line,
@@ -88,58 +97,75 @@ class Tokenizer {
 
 		const part/*: StatementNode | StatementNode[]*/ = statement[i];
 
-		return (Array.isArray(part) ? part : [part])
-			.map((option/*: RuleNode*/) => this._canMatchOption(option, line, tokens, statement, i))
-			.reduce((allResults/*: IResult[]*/, partials/*: IResult[]*/) => allResults.concat(partials), []);
-	}
-
-	_canMatchOption(option/*: RuleNode*/, line/*: string*/, tokens/*: IToken[]*/, statement/*: Statement*/, i/*: number*/)/*: IResult[]*/ {
-		return this._canMatchPart(option, line)
-			.map((partial/*: IResult*/) => {
-				let results/*: IResult[]*/ = [];
-
-				if (option.canRepeat) {
-					results = results.concat(
-						this._canMatchOption(option, partial.line, tokens.concat(partial.tokens), statement, i)
-					);
-				}
-
-				results = results.concat(
-					this._canMatchStatement(statement, i + 1, partial.line, tokens.concat(partial.tokens))
-				);
-
-				return results;
+		const paths/*: { RuleNode, IResult }[] */ = (Array.isArray(part) ? part : [part])
+			.map((option/*: RuleNode*/) => {
+				return {
+					option: option,
+					result: this._canMatchOption(option, line, tokens, statement, i)
+				};
 			})
-			.reduce((allResults/*: IResult[]*/, partials/*: IResult[]*/) => allResults.concat(partials), []);
+			.filter((path/*: IResult*/) => !!path.result);
+
+		let filteredPaths/*: IResult[]*/;
+		if (paths.length > 1) {
+			filteredPaths = paths
+				.filter(path => !path.option.empty)
+				.map(path => path.result);
+		} else {
+			filteredPaths = paths
+				.map(path => path.result);
+		}
+
+		return filteredPaths
+			.map(path => this._canMatchStatementStep(statement, i + 1, path.line, tokens.concat(path.tokens)))
+			.reduce((allPaths/*: IResult[]*/, partials/*: IResult[]*/) => allPaths.concat(partials), []);
 	}
 
-	_canMatchPart(part/*: RuleNode*/, line/*: string*/)/*: IResult[]*/ {
+	_canMatchOption(option/*: RuleNode*/, line/*: string*/)/*: IResult*/ {
+		const match/*: IResult*/ = this._canMatchPart(option, line);
+
+		if (match) {
+			if (option.canRepeat) {
+				const repeatMatch/*: IResult*/ = this._canMatchOption(option, match.line);
+
+				if (repeatMatch) {
+					return Object.assign(repeatMatch, { tokens: match.tokens.concat(repeatMatch.tokens) });
+				}
+			}
+
+			return match;
+		}
+
+		return null;
+	}
+
+	_canMatchPart(part/*: RuleNode*/, line/*: string*/)/*: IResult*/ {
 		//console.log('matching', part, 'against', line);
 
 		if (part.statement) {
-			return this._canMatchStatement(part.statement, 0, line, []);
+			return this._canMatchStatement(part.statement, line);
 		}
 
 		if (part.token) {
 			const match/* string[]*/ = line.match(this._tokenDefinitions[part.token]);
 			if (match) {
-				return [{
+				return {
 					tokens: [{
 						token: part.token,
 						match: match
 					}],
 					line: line.replace(this._tokenDefinitions[part.token], '').trim()
-				}];
+				};
 			}
 
-			return [];
+			return null;
 		}
 
 		if (part.empty) {
-			return [{
+			return {
 				tokens: [],
 				line: line
-			}];
+			};
 		}
 
 		throw new Error(`Unknown part`);
