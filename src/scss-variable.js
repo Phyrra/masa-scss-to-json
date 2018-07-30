@@ -26,7 +26,7 @@ const Token = {
 };
 
 const TokenDefinition = {
-	[Token.TEXT]: new RegExp(/^([a-zA-Z][\w-]*)/), // this will also match function start foo( and catch it
+	[Token.TEXT]: new RegExp(/^([a-zA-Z][\w-]*)(?=\)|,|\s|$)/),
 	[Token.COLOR]: new RegExp(/^#([0-9a-fA-F]+)/),
 	[Token.NUMBER]: new RegExp(/^([+-]?(\d*\.\d+|\d+\.\d*)|[+-]?\d+)/),
 	[Token.UNIT]: new RegExp(/^([a-zA-Z%]+)/),
@@ -198,11 +198,11 @@ functionStatement = [
 ];
 
 const valueStatement = [
-	functionStatement, // must be before textStatement because of overlap
 	numberStatement,
 	colorStatement,
 	variableStatement,
 	textStatement,
+	functionStatement,
 	calculationBlockStatement
 ];
 
