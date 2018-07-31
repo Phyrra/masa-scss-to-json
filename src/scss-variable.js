@@ -87,45 +87,48 @@ const bracketStatement = [
 	}
 ];
 
-const calculationArgument = [
-	{
-		statement: numberStatement
-	},
-	{
-		statement: bracketStatement
-	},
-	{
-		token: Token.VARIABLE
-	}
+const calculationArgumentStatement = [
+	[
+		{
+			statement: numberStatement
+		},
+		{
+			statement: bracketStatement
+		},
+		{
+			token: Token.VARIABLE
+		}
+	]
 ];
 
 calculationStatement = [
-	{
-		canRepeat: true,
-		statement: [
-			calculationArgument,
-			{
-				token: Token.OPERATOR
-			}
-		]
-	},
-	calculationArgument
+	[
+		{
+			statement: [
+				{
+					statement: calculationArgumentStatement
+				},
+				{
+					token: Token.OPERATOR
+				},
+				{
+					get statement() { return calculationStatement; }
+				}
+			]
+		},
+		{
+			statement: calculationArgumentStatement
+		}
+	]
 ];
 
 const calculationBlockStatement = [
 	{
 		token: Token.CALCULATION_START
 	},
-	[
-		{
-			statement: calculationStatement
-		},
-		{
-			statement: [
-				calculationArgument
-			]
-		}
-	],
+	{
+		statement: calculationStatement
+	},
 	{
 		token: Token.CALCULATION_END
 	},
@@ -141,38 +144,48 @@ const calculationBlockStatement = [
 
 let functionStatement;
 
-const functionArgument = [
-	{
-		statement: numberStatement
-	},
-	{
-		statement: colorStatement
-	},
-	{
-		statement: textStatement
-	},
-	{
-		statement: variableStatement
-	},
-	{
-		statement: calculationBlockStatement
-	},
-	{
-		get statement() { return functionStatement; }
-	}
+const argumentStatement = [
+	[
+		{
+			statement: numberStatement
+		},
+		{
+			statement: colorStatement
+		},
+		{
+			statement: textStatement
+		},
+		{
+			statement: variableStatement
+		},
+		{
+			statement: calculationBlockStatement
+		},
+		{
+			get statement() { return functionStatement; }
+		}
+	]
 ];
 
 const functionArgumentListStatement = [
-	{
-		canRepeat: true,
-		statement: [
-			functionArgument,
-			{
-				token: Token.ARGUMENT_SEPARATOR
-			}
-		]
-	},
-	functionArgument
+	[
+		{
+			statement: [
+				{
+					statement: argumentStatement
+				},
+				{
+					token: Token.ARGUMENT_SEPARATOR
+				},
+				{
+					get statement() { return functionArgumentListStatement; }
+				}
+			]
+		},
+		{
+			statement: argumentStatement
+		}
+	]
 ];
 
 functionStatement = [
@@ -182,11 +195,6 @@ functionStatement = [
 	[
 		{
 			empty: true
-		},
-		{
-			statement: [
-				functionArgument
-			]
 		},
 		{
 			statement: functionArgumentListStatement

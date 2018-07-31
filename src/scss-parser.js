@@ -70,23 +70,22 @@ const plainVariableStatement = [
 const multiArrayValueStatement = [
 	[
 		{
-			canRepeat: true,
 			statement: [
 				{
 					token: Token.ARRAY_VALUE
 				},
 				{
 					token: Token.OBJECT_VALUE_SEPARATOR
+				},
+				{
+					get statement() { return multiArrayValueStatement; }
 				}
 			]
 		},
 		{
-			empty: true
+			token: Token.ARRAY_VALUE
 		}
-	],
-	{
-		token: Token.ARRAY_VALUE
-	}
+	]
 ];
 
 const mapEntryStatement = [
@@ -101,23 +100,22 @@ const mapEntryStatement = [
 const multiMapValueStatement = [
 	[
 		{
-			canRepeat: true,
 			statement: [
 				{
 					statement: mapEntryStatement
 				},
 				{
 					token: Token.OBJECT_VALUE_SEPARATOR
+				},
+				{
+					get statement() { return multiMapValueStatement; }
 				}
 			]
 		},
 		{
-			empty: true
+			statement: mapEntryStatement
 		}
-	],
-	{
-		statement: mapEntryStatement
-	}
+	]
 ];
 
 const objectVariableStatement = [
