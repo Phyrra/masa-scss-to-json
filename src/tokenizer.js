@@ -39,25 +39,14 @@ class Tokenizer {
 
 		while (oneLine.length > 0) {
 			const found/*: boolean*/ = root.some((statement/*: Statement*/) => {
-				const results/*: IResult[]*/ = this._canMatchStatement(statement, oneLine);
+				const result/*: IResult*/ = this._canMatchRootStatement(statement, oneLine);
 
-				if (results.length === 0) {
+				if (result == null) {
 					return false;
 				}
 
-				if (results.length > 1) {
-					console.log(
-						'FOUND_OPTIONS',
-						results.map(
-							result => result.tokens.map(token => token.token + ' [' + token.match.slice(1).join(', ') + ']')
-						)
-					);
-
-					throw new Error(`Multiple options found for ${line}`);
-				}
-
-				oneLine = results[0].line;
-				tokens = tokens.concat(results[0].tokens);
+				oneLine = result.line;
+				tokens = tokens.concat(result.tokens);
 
 				return true;
 			});
@@ -75,6 +64,27 @@ class Tokenizer {
 		//console.log(tokens.map(token => token.token + ' [' + token.match.slice(1).join(', ') + ']'));
 
 		return tokens;
+	}
+
+	_canMatchRootStatement(statement/*: Statement*/, line/*: string*/)/*: IResult | null*/ {
+		const results/*: IResult[]*/ = this._canMatchStatement(statement, line);
+
+		if (results.length === 0) {
+			return null;
+		}
+
+		if (results.length > 1) {
+			console.log(
+				'FOUND_OPTIONS',
+				results.map(
+					result => result.tokens.map(token => token.token + ' [' + token.match.slice(1).join(', ') + ']')
+				)
+			);
+
+			throw new Error(`Multiple options found for ${line}`);
+		}
+
+		return results[0];
 	}
 
 	_canMatchStatement(statement/*: Statement*/, line/*: string*/)/*: IResult[]*/ {
