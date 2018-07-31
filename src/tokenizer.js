@@ -45,20 +45,19 @@ class Tokenizer {
 					return false;
 				}
 
-				/*
-				 * Edge case:
-				 * Statement ends in [ { empty: true }, { token: Token } ]
-				 * This will produce 2 possible paths,
-				 * in this case take the longest one
-				 */
-				const longestMatch = results
-					.reduce(
-						(longest/*: IResult*/, match/*: IResult*/) => match.tokens.length > longest.tokens.length ? match : longest,
-						{ tokens: [] }
+				if (results.length > 1) {
+					console.log(
+						'FOUND_OPTIONS',
+						results.map(
+							result => result.tokens.map(token => token.token + ' [' + token.match.slice(1).join(', ') + ']')
+						)
 					);
 
-				oneLine = longestMatch.line;
-				tokens = tokens.concat(longestMatch.tokens);
+					throw new Error(`Multiple options found for ${line}`);
+				}
+
+				oneLine = results[0].line;
+				tokens = tokens.concat(results[0].tokens);
 
 				return true;
 			});
@@ -90,10 +89,29 @@ class Tokenizer {
 			}];
 		}
 
+		const filterIf = (arr, condition, filter) => {
+			if (condition(arr)) {
+				return arr.filter(filter);
+			}
+
+			return arr;
+		};
+
 		const part/*: StatementNode | StatementNode[]*/ = statement[i];
 
-		return (Array.isArray(part) ? part : [part])
-			.map((option/*: RuleNode*/) => this._canMatchOption(option, line))
+		return filterIf(
+			(Array.isArray(part) ? part : [part])
+				.map((option/*: RuleNode*/) => {
+					return {
+						option: option,
+						paths: this._canMatchOption(option, line)
+					};
+				})
+				.filter((partials/*: { RuleNode, IResult[] }*/ => partials.paths.length > 0)),
+			(partials) => partials.length > 1,
+			(partial) => !partial.option.empty
+		)
+			.map((partials/*: { RuleNode, IResult[] }*/) => partials.paths)
 			.reduce((allResults/*: IResult[]*/, partials/*: IResult[]*/) => allResults.concat(partials), [])
 			.map((path/*: IResult*/) => this._canMatchStatementStep(statement, i + 1, path.line, tokens.concat(path.tokens)))
 			.reduce((allResults/*: IResult[]*/, partials/*: IResult[]*/) => allResults.concat(partials), []);
