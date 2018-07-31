@@ -17,13 +17,13 @@ interface IResult {
 	tokens: IToken[];
 }
 
-interface StatementNode {
+interface IStatementNode {
 	canRepeat: boolean;
 	statement?: Statement;
 	token?: Token;
 }
 
-type Statement = (StatementNode | StatementNode[])[];
+type Statement = (IStatementNode | IStatementNode[])[];
 */
 
 class Tokenizer {
@@ -107,27 +107,27 @@ class Tokenizer {
 			return arr;
 		};
 
-		const part/*: StatementNode | StatementNode[]*/ = statement[i];
+		const part/*: IStatementNode | IStatementNode[]*/ = statement[i];
 
 		return filterIf(
 			(Array.isArray(part) ? part : [part])
-				.map((option/*: RuleNode*/) => {
+				.map((option/*: IStatmentNode*/) => {
 					return {
 						option: option,
 						paths: this._canMatchOption(option, line)
 					};
 				})
-				.filter((partials/*: { RuleNode, IResult[] }*/ => partials.paths.length > 0)),
+				.filter((partials/*: { IStatmentNode, IResult[] }*/ => partials.paths.length > 0)),
 			(partials) => partials.length > 1,
 			(partial) => !partial.option.empty
 		)
-			.map((partials/*: { RuleNode, IResult[] }*/) => partials.paths)
+			.map((partials/*: { IStatmentNode, IResult[] }*/) => partials.paths)
 			.reduce((allResults/*: IResult[]*/, partials/*: IResult[]*/) => allResults.concat(partials), [])
 			.map((path/*: IResult*/) => this._canMatchStatementStep(statement, i + 1, path.line, tokens.concat(path.tokens)))
 			.reduce((allResults/*: IResult[]*/, partials/*: IResult[]*/) => allResults.concat(partials), []);
 	}
 
-	_canMatchOption(option/*: RuleNode*/, line/*: string*/)/*: IResult[]*/ {
+	_canMatchOption(option/*: IStatmentNode*/, line/*: string*/)/*: IResult[]*/ {
 		return this._canMatchPart(option, line)
 			.map((partial/*: IResult*/) => {
 				let results/*: IResult[]*/ = [ partial ];
@@ -147,7 +147,7 @@ class Tokenizer {
 			.reduce((allResults/*: IResult[]*/, partials/*: IResult[]*/) => allResults.concat(partials), []);
 	}
 
-	_canMatchPart(part/*: RuleNode*/, line/*: string*/)/*: IResult[]*/ {
+	_canMatchPart(part/*: IStatmentNode*/, line/*: string*/)/*: IResult[]*/ {
 		//console.log('matching', part, 'against', line);
 
 		if (part.statement) {
