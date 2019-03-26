@@ -57,3 +57,5 @@ function getJsonValueString(value) {
 
 	return `"${value.replace(/"/g, '\\"')}"`;
 }
+
+module.exports = writeJsonToFile;

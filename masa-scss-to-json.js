@@ -2,6 +2,7 @@ const path = require('path');
 
 const reader = require('./src/scss-reader');
 const calculator = require('./src/calculator');
+const writer = require('./src/json-writer');
 
 function processFile(baseDir, file, variables) {
 	let arrayBuffer = [];
@@ -303,7 +304,7 @@ function scssToJson(baseDir, startFile, outFile) {
 	processFile(baseDir, path.join(baseDir, startFile), variables);
 
 	if (outFile != null) {
-		writeJsonToFile(baseDir, outFile, variables);
+		writer(baseDir, outFile, variables);
 	}
 
 	return variables;
